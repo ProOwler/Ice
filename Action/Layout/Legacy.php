@@ -1,60 +1,59 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 10.12.13
- * Time: 18:34
- */
-
 namespace ice\action;
 
-
 use ice\core\action\Legacy;
+use ice\core\action\View;
 use ice\core\Action_Context;
-use ice\core\View;
+use ice\view\render\Smarty;
 
-class Layout_Legacy extends Legacy
+/**
+ * Legacy layout action
+ *
+ * @package ice\action
+ * @author dp
+ */
+class Layout_Legacy extends Legacy implements View
 {
     /**
-     * Запускает Экшин
+     * Initialization action context
+     *
+     * @return Action_Context
+     */
+    protected function init()
+    {
+        $actionContext = parent::init();
+        $actionContext->setViewRenderClass(Smarty::VIEW_RENDER_SMARTY_CLASS);
+        return $actionContext;
+    }
+
+    /**
+     * Run action
      *
      * @param array $input
      * @param Action_Context $context
+     * @throws \ice\Exception
      * @return array
      */
     protected function run(array $input, Action_Context &$context)
     {
         if (isset($input['layoutTemplate'])) {
-            $this->setTemplate($input['layoutTemplate']);
+            $context->setTemplate($input['layoutTemplate']);
             unset($input['layoutTemplate']);
         }
 
-        $params = reset(parent::run($input, $context)['tasks'])->getTransaction()->buffer();
-        $action = $input['routeActions'];
+        $legacyAction = $input['action'];
+        unset($input['action']);
 
-        if (strpos($action, '/')) {
-            $params['controllerAction'] = $action;
-            $action = 'Legacy';
-            if (isset($input['action'])) {
-                $params['action'] = $input['action'];
-            }
-        }
+        $action = reset($input['actions']);
+        unset($input['actions']);
 
-        $context->addAction($action, $params);
+        $context->addAction($action, $input, 'content');
 
-        return array(
-            'content' => $action,
-            'routeTitle' => $input['routeTitle']
-        );
+        $output = parent::run(['action' => $legacyAction], $context);
+
+        $context->setTemplate($output['template']);
+        unset($output['template']);
+
+        return $output;
     }
-
-    protected function flush(Action_Context &$context)
-    {
-        /** @var View[] $data */
-        $data = $context->getData();
-
-        $data['content'] = $data[$data['content']][0]->render();
-
-        $context->setData($data);
-    }
-} 
+}

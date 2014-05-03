@@ -1,36 +1,34 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 20.12.13
- * Time: 22:06
- */
-
 namespace ice\core;
 
 use ice\Exception;
+use ice\helper\Object;
 use ice\Ice;
 
 abstract class Data_Provider
 {
-    const KEY = 'dataProviderKey';
     const DEFAULT_SCHEME = 'default';
 
-    private static $_connectionPool = array();
-    /** @var Data_Provider[] */
-    private static $_dataProviders = array();
+    public static $connections = [];
 
-    private $_name = null; // Redis || Mysqli
+    /** @var Data_Provider[] */
+    private static $_dataProviders = [];
+
     private $_index = null; // default || production
     private $_scheme = null;
     private $_options = null;
 
-    private function __construct($name, $index, $scheme, array $options = array())
+    private function __construct($name, $index, $scheme, array $options = [])
     {
         $this->_name = $name;
         $this->_index = $index;
         $this->_scheme = $scheme;
         $this->_options = $options;
+    }
+
+    public static function getDefaultKey()
+    {
+        throw new Exception('Default data provider key is not defined');
     }
 
     public function setScheme($scheme)
@@ -39,59 +37,60 @@ abstract class Data_Provider
     }
 
     /**
+     * Get instance connection of data provider
+     *
      * @throws Exception
-     * @return null
+     * @return Object
      */
     public function getConnection()
     {
-        $dataProviderName = $this->getName();
+        /** @var Data_Provider $dataProviderClass */
+        $dataProviderClass = get_class($this);
+
         $dataProviderIndex = $this->getIndex();
         $dataProviderScheme = $this->getScheme();
 
-        if (isset(self::$_connectionPool[$dataProviderName][$dataProviderIndex][$dataProviderScheme])) {
-            return self::$_connectionPool[$dataProviderName][$dataProviderIndex][$dataProviderScheme];
+        if (isset($dataProviderClass::$connections[$dataProviderIndex][$dataProviderScheme])) {
+            return $dataProviderClass::$connections[$dataProviderIndex][$dataProviderScheme];
         }
 
-        if (!isset(self::$_connectionPool[$dataProviderName])) {
-            self::$_connectionPool[$dataProviderName] = array();
+        if (!isset($dataProviderClass::$connections[$dataProviderIndex])) {
+            $dataProviderClass::$connections[$dataProviderIndex] = [];
         }
 
-        if (!isset(self::$_connectionPool[$dataProviderName][$dataProviderIndex])) {
-            self::$_connectionPool[$dataProviderName][$dataProviderIndex] = array();
-        }
+        if (!empty($dataProviderClass::$connections[$dataProviderIndex])) {
+            $oldConnection = each($dataProviderClass::$connections[$dataProviderIndex]);
 
-        if (!empty(self::$_connectionPool[$dataProviderName][$dataProviderIndex])) {
-            $oldConnection = each(self::$_connectionPool[$dataProviderName][$dataProviderIndex]);
+            $dataProviderClass::$connections[$dataProviderIndex][$dataProviderScheme]
+                = $dataProviderClass::$connections[$dataProviderIndex][$oldConnection['key']];
 
-            self::$_connectionPool[$dataProviderName][$dataProviderIndex][$dataProviderScheme]
-                = self::$_connectionPool[$dataProviderName][$dataProviderIndex][$oldConnection['key']];
-
-
-            if (!$this->switchScheme(
-                self::$_connectionPool[$dataProviderName][$dataProviderIndex][$dataProviderScheme]
-            )
-            ) {
-                unset(self::$_connectionPool[$dataProviderName][$dataProviderIndex][$dataProviderScheme]);
+            if (!$this->switchScheme($dataProviderClass::$connections[$dataProviderIndex][$dataProviderScheme])) {
+                unset($dataProviderClass::$connections[$dataProviderIndex][$dataProviderScheme]);
                 throw new Exception('Не удалось переключиться к схеме дата провайдера "' . $this->getDataProviderKey() . '"');
             }
 
-            unset(self::$_connectionPool[$dataProviderName][$dataProviderIndex][$oldConnection['key']]);
+            if ($oldConnection['key'] != $dataProviderScheme) {
+                if (!$this->connect($dataProviderClass::$connections[$dataProviderIndex][$dataProviderScheme])) {
+                    throw new Exception('Соединение с дата провайдером "' . $this->getDataProviderKey() . '" не установлено');
+                }
+            }
 
-            return self::$_connectionPool[$dataProviderName][$dataProviderIndex][$dataProviderScheme];
+            unset($dataProviderClass::$connections[$dataProviderIndex][$oldConnection['key']]);
+            return $dataProviderClass::$connections[$dataProviderIndex][$dataProviderScheme];
         }
 
-        self::$_connectionPool[$dataProviderName][$dataProviderIndex][$dataProviderScheme] = null;
+        $dataProviderClass::$connections[$dataProviderIndex][$dataProviderScheme] = null;
 
-        if (!$this->connect(self::$_connectionPool[$dataProviderName][$dataProviderIndex][$dataProviderScheme])) {
+        if (!$this->connect($dataProviderClass::$connections[$dataProviderIndex][$dataProviderScheme])) {
             throw new Exception('Соединение с дата провайдером "' . $this->getDataProviderKey() . '" не установлено');
         }
 
-        if (!$this->switchScheme(self::$_connectionPool[$dataProviderName][$dataProviderIndex][$dataProviderScheme])) {
-            unset(self::$_connectionPool[$dataProviderName][$dataProviderIndex][$dataProviderScheme]);
+        if (!$this->switchScheme($dataProviderClass::$connections[$dataProviderIndex][$dataProviderScheme])) {
+            unset($dataProviderClass::$connections[$dataProviderIndex][$dataProviderScheme]);
             throw new Exception('Не удалось переключиться к схеме дата провайдера "' . $this->getDataProviderKey() . '"');
         }
 
-        return self::$_connectionPool[$dataProviderName][$dataProviderIndex][$dataProviderScheme];
+        return $dataProviderClass::$connections[$dataProviderIndex][$dataProviderScheme];
     }
 
     public function closeConnection()
@@ -113,18 +112,23 @@ abstract class Data_Provider
 
     /**
      * @param $dataProviderKey // example: 'Redis:localhost/model'
+     * @throws \ice\Exception
      * @return Data_Provider
      */
-    public static function getInstance($dataProviderKey)
+    public static function getInstance($dataProviderKey = null)
     {
+        if (empty($dataProviderKey)) {
+            /** @var Data_Provider $dataProviderClass */
+            $dataProviderClass = get_called_class();
+            $dataProviderKey = $dataProviderClass::getDefaultKey();
+        }
+
         $index = strstr($dataProviderKey, '/', true);
         $dataProviderScheme = substr(strstr($dataProviderKey, '/'), 1);
 
         if (empty($dataProviderScheme)) {
             $dataProviderScheme = self::DEFAULT_SCHEME;
         }
-
-        $options = Ice::getConfig()->getParams('dataProviders/' . $index);
 
         list($dataProviderName, $dataProviderIndex) = explode(':', $index);
 
@@ -142,11 +146,8 @@ abstract class Data_Provider
                 $filePath .= '/' . $filePathPart;
             }
 
-            $modulesConfigName = Ice::getConfig()->getConfigName() . ':modules';
-
-            foreach (Ice::getConfig()->getParams('modules') as $module) {
-                $moduleConfig = new Config($module, $modulesConfigName);
-                $fileName = dirname($moduleConfig->getParam('path')) . str_replace('_', '/', $filePath) . '.php';
+            foreach (Ice::getModules() as $modulePath) {
+                $fileName = dirname($modulePath) . str_replace('_', '/', $filePath) . '.php';
                 if (file_exists($fileName)) {
                     require_once $fileName;
                     break;
@@ -155,7 +156,12 @@ abstract class Data_Provider
         }
 
         self::$_dataProviders[$dataProviderName][$dataProviderIndex][$dataProviderScheme] =
-            new $dataProviderClass($dataProviderName, $dataProviderIndex, $dataProviderScheme, $options);
+            new $dataProviderClass(
+                $dataProviderName,
+                $dataProviderIndex,
+                $dataProviderScheme,
+                Ice::getEnvironment()->gets('dataProviders/' . $index)
+            );
 
         return self::$_dataProviders[$dataProviderName][$dataProviderIndex][$dataProviderScheme];
     }
@@ -176,32 +182,26 @@ abstract class Data_Provider
         return $this->_index;
     }
 
-    /**
-     * @return string
-     */
-    public function getName()
-    {
-        return $this->_name;
-    }
-
-    public function getDataProviderKey()
-    {
-        return $this->getName() . '_' . $this->getIndex();
-    }
-
     protected function getKeyPrefix()
     {
-        return $this->getDataProviderKey() . '_' . $this->getScheme();
+        return Object::getName(get_class($this)) . '/' . $this->getIndex() . '/' . urlencode($this->getScheme());
     }
 
     protected function getKey($key)
     {
-        return Ice::getProject() . '_' . urlencode($this->getKeyPrefix() . '_' . $key);
+        return str_replace(['\\'], '/', Ice::getProject() . '/' . $this->getKeyPrefix() . '/' . urlencode($key));
     }
 
     protected function getOption($key = null)
     {
-        return $key ? $this->_options[$key] : $this->_options;
+        $option = null;
+
+        if ($key) {
+            $option = $this->_options[$key];
+            return is_array($option) ? reset($option) : $option;
+        }
+
+        return $this->_options;
     }
 
     /**

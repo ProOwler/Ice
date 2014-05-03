@@ -1,11 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 13.02.14
- * Time: 14:23
- */
-
 namespace ice\data\provider;
 
 use ice\core\Data_Provider;
@@ -13,6 +6,7 @@ use ice\Exception;
 
 class Cli extends Data_Provider
 {
+    public static $connections = [];
 
     public function get($key = null)
     {
@@ -27,27 +21,27 @@ class Cli extends Data_Provider
 
     public function set($key, $value, $ttl = 3600)
     {
-        // TODO: Implement set() method.
+        throw new Exception('Implement set() method.');
     }
 
     public function delete($key)
     {
-        // TODO: Implement delete() method.
+        throw new Exception('Implement delete() method.');
     }
 
     public function inc($key, $step = 1)
     {
-        // TODO: Implement inc() method.
+        throw new Exception('Implement inc() method.');
     }
 
     public function dec($key, $step = 1)
     {
-        // TODO: Implement dec() method.
+        throw new Exception('Implement dec() method.');
     }
 
     public function flushAll()
     {
-        // TODO: Implement flushAll() method.
+        throw new Exception('Implement flushAll() method.');
     }
 
     /**
@@ -74,7 +68,7 @@ class Cli extends Data_Provider
             throw new Exception('Invalid command line. Usage: cli.php Action_Call param=value');
         }
 
-        $connection = array();
+        $connection = [];
 
         $connection['action'] = next($_SERVER ['argv']);
 

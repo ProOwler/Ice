@@ -6,16 +6,15 @@ use ice\core\action\Service;
 use ice\core\Action_Context;
 
 /**
- * Created by PhpStorm.
- * User: dp
- * Date: 30.11.13
- * Time: 14:39
+ * Stop action service
+ *
+ * @package ice\action
+ * @author dp
  */
 class Service_Stop extends Service
 {
-
     /**
-     * Запускает Экшин
+     * Run action
      *
      * @param array $input
      * @param Action_Context $context

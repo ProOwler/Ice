@@ -1,4 +1,4 @@
 <?php
-use ice\core\helper\Json;
+use ice\helper\Json;
 
 echo Json::encode($frontAjax['Action']);

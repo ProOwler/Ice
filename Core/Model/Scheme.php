@@ -1,11 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 08.01.14
- * Time: 20:11
- */
-
 namespace ice\core;
 
 use ice\Ice;
@@ -20,11 +13,9 @@ class Model_Scheme
         $this->_modelSchemeConfig = $modelSchemeConfig;
     }
 
-    public static function get($modelClass)
+    public static function getInstance($modelClass)
     {
-        $dataProvider = Data_Provider::getInstance(
-            Ice::getConfig()->getParam('modelSchemeDataProviderKey') . $modelClass
-        );
+        $dataProvider = Data_Provider::getInstance(Ice::getEnvironment()->get('dataProviderKeys/' . __CLASS__));
 
         $modelScheme = $dataProvider->get($modelClass);
 
@@ -32,7 +23,7 @@ class Model_Scheme
             return $modelScheme;
         }
 
-        $modelSchemeConfig = Config::get($modelClass, array(), 'Scheme');
+        $modelSchemeConfig = Config::getInstance($modelClass, [], 'Scheme');
 
         $modelScheme = $modelSchemeConfig
             ? new Model_Scheme($modelSchemeConfig)
@@ -47,10 +38,10 @@ class Model_Scheme
 
     private static function create($modelClass)
     {
-        $dataMapping = Data_Mapping::get();
+        $dataMapping = Data_Mapping::getInstance();
         $dataMapping->add($modelClass);
 
-        $tableName = Data_Mapping::get()->getModelClasses()[$modelClass];
+        $tableName = Data_Mapping::getInstance()->getModelClasses()[$modelClass];
         $modelSchemeConfigData = Data_Source::getDefault()->getDataScheme()[$tableName];
 
         $modelSchemeConfig = Config::create($modelClass, $modelSchemeConfigData, 'Scheme');
@@ -61,7 +52,7 @@ class Model_Scheme
 
     public function getColumns()
     {
-        return $this->_modelSchemeConfig->getParams();
+        return $this->_modelSchemeConfig->gets();
     }
 
     public function getColumnNames()

@@ -1,11 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 31.12.13
- * Time: 14:55
- */
-
 namespace ice\data\provider;
 
 use ice\core\Data_Provider;
@@ -14,6 +7,8 @@ use ice\Exception;
 
 class Defined extends Data_Provider
 {
+    public static $connections = [];
+
     /**
      * @param $connection
      * @return boolean
@@ -22,8 +17,8 @@ class Defined extends Data_Provider
     {
         /** @var Model $modelName */
         $modelName = $this->getScheme();
-        $connection = $modelName::getDefinedConfig()->getParams();
-        return (bool)count($connection);
+        $connection = $modelName::getDefinedConfig()->gets();
+        return !empty($connection);
     }
 
     /**
@@ -38,27 +33,27 @@ class Defined extends Data_Provider
 
     public function get($key = null)
     {
-        // TODO: Implement get() method.
+        throw new Exception('Implement get() method.');
     }
 
     public function set($key, $value, $ttl = 3600)
     {
-        // TODO: Implement set() method.
+        throw new Exception('Implement set() method.');
     }
 
     public function delete($key)
     {
-        // TODO: Implement delete() method.
+        throw new Exception('Implement delete() method.');
     }
 
     public function inc($key, $step = 1)
     {
-        // TODO: Implement inc() method.
+        throw new Exception('Implement inc() method.');
     }
 
     public function dec($key, $step = 1)
     {
-        // TODO: Implement dec() method.
+        throw new Exception('Implement dec() method.');
     }
 
     public function flushAll()

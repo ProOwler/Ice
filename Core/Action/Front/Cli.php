@@ -1,29 +1,30 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 13.02.14
- * Time: 14:07
- */
-
 namespace ice\core\action;
 
 use ice\core\Action;
 use ice\core\Action_Context;
+use ice\view\render\Php;
 
-class Front_Cli extends Action implements Cliable
+class Front_Cli extends Action implements Cli
 {
-
-    protected function init(Action_Context &$context)
+    /**
+     * Initialization action context
+     *
+     * @return Action_Context
+     */
+    protected function init()
     {
-        parent::init($context);
-        $context->addDataProviderKeys('Cli:prompt/');
+        $actionContext = parent::init();
+        $actionContext->setViewRenderClass(Php::VIEW_RENDER_PHP_CLASS);
+        $actionContext->addDataProviderKeys('Cli:prompt/');
 
         ini_set('memory_limit', '1024M');
+
+        return $actionContext;
     }
 
     /**
-     * Запускает Экшин
+     * Run action
      *
      * @param array $input
      * @param Action_Context $context

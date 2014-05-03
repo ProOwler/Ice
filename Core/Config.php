@@ -1,22 +1,33 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 24.12.13
- * Time: 22:55
- */
-
 namespace ice\core;
 
-use ice\core\helper\Dir;
 use ice\Exception;
+use ice\helper\Dir;
 use ice\Ice;
+use Iterator;
 
-class Config
+/**
+ * Config class
+ *
+ * @package ice\core
+ * @author dp
+ */
+class Config implements Iterator
 {
+    /** @var array Config params */
     private $_config = null;
+
+    /** @var null Config Key */
     private $_configName = null;
 
+    private $position = 0;
+
+    /**
+     * Constructor of config object
+     *
+     * @param array $_config
+     * @param $configName
+     */
     public function __construct(array $_config, $configName)
     {
         $this->_config = $_config;
@@ -24,6 +35,8 @@ class Config
     }
 
     /**
+     * Create file config
+     *
      * @param $className
      * @param array $configData
      * @param null $postfix
@@ -35,16 +48,18 @@ class Config
             ? $className . '_' . $postfix
             : $className;
 
-        $fileName = Loader::getFilePath($configName, 'Config', '.php', false, true, true);
+        $fileName = Loader::getFilePath($configName, '.php', 'Config', false, true, true);
 
         Dir::get(dirname($fileName));
 
         file_put_contents($fileName, '<?php' . "\n" . 'return ' . var_export($configData, true) . ';');
 
-        return Config::get($className, array(), $postfix, true, false);
+        return Config::getInstance($className, [], $postfix, true, false);
     }
 
     /**
+     * Get config object by type or key
+     *
      * @param $className
      * @param array $selfConfig
      * @param null $postfix
@@ -53,9 +68,9 @@ class Config
      * @throws Exception
      * @return Config
      */
-    public static function get(
+    public static function getInstance(
         $className,
-        array $selfConfig = array(),
+        array $selfConfig = [],
         $postfix = null,
         $isRequired = false,
         $isUseCache = true
@@ -66,7 +81,7 @@ class Config
         }
 
         /** @var Data_Provider $dataProvider */
-        $dataProvider = Data_Provider::getInstance(Ice::getConfig()->getParam('configDataProviderKey'));
+        $dataProvider = Data_Provider::getInstance(Ice::getEnvironment()->get('dataProviderKeys/' . __CLASS__));
 
         $_config = $isUseCache ? $dataProvider->get($className) : null;
 
@@ -74,23 +89,37 @@ class Config
             return $_config;
         }
 
-        $config = array();
+        $config = [];
 
-        $fileName = Loader::getFilePath($className, 'Config', '.php', $isRequired);
+        foreach (Ice::getModules() as $modulePath) {
+            $filePath = '';
 
-//        var_dump($fileName . ' ' . file_exists($fileName) . "</br>\n");
-
-        if ($fileName) {
-            $configFromFile = include $fileName;
-
-            if (!is_array($configFromFile)) {
-                throw new Exception('Не валидный файл конфиг: ' . $fileName);
+            foreach (explode('\\', $className) as $filePathPart) {
+                $filePathPart[0] = strtoupper($filePathPart[0]);
+                $filePath .= $filePathPart . '/';
             }
 
-            $config += $configFromFile; // http://www.php.net/array_merge => оператор +
+            $fileName = $modulePath . 'Config/' . str_replace('_', '/', rtrim($filePath, '/')) . '.php';
+
+            if (file_exists($fileName)) {
+                $configFromFile = include $fileName;
+
+                if (!is_array($configFromFile)) {
+                    throw new Exception('Не валидный файл конфиг: ' . $fileName);
+                }
+
+                $config += $configFromFile; // http://www.php.net/array_merge => оператор +
+            }
+        }
+
+        $iceConfig = Ice::getConfig()->gets('configs/' . $className, false);
+
+        if (!empty($iceConfig)) {
+            $config += $iceConfig;
         }
 
         $config += $selfConfig;
+
 
         if (empty($config)) {
             return null;
@@ -104,19 +133,21 @@ class Config
     }
 
     /**
+     * Get config param value
+     *
      * @param $key
      * @param bool $isRequired
      * @throws Exception
      * @return string
      */
-    public function getParam($key, $isRequired = true)
+    public function get($key, $isRequired = true)
     {
         $param = null;
 
         try {
             $param = $this->xpath($this->_config, $key, $isRequired);
         } catch (\Exception $e) {
-            throw new Exception('Could nof found config param -> ' . $this->getConfigName() . ':' . $key, array(), $e);
+            throw new Exception('Could nof found config param -> ' . $this->getConfigName() . ':' . $key, [], $e);
         }
 
         if (is_array($param)) {
@@ -127,28 +158,14 @@ class Config
     }
 
     /**
+     * Return param by string
+     *
+     * @param $config
      * @param $key
-     * @param bool $isRequired
-     * @throws Exception
+     * @param $isRequired
      * @return array
+     * @throws Exception
      */
-    public function getParams($key = null, $isRequired = true)
-    {
-        $params = null;
-
-        try {
-            $params = $this->xpath($this->_config, $key, $isRequired);
-        } catch (\Exception $e) {
-            throw new Exception('Could nof found config params -> ' . $this->getConfigName() . ':' . $key, array(), $e);
-        }
-
-        if (!is_array($params)) {
-            throw new Exception('Ожидается массив данных.', $params);
-        }
-
-        return $params;
-    }
-
     private function xpath($config, $key, $isRequired)
     {
         if (!$key) {
@@ -178,10 +195,98 @@ class Config
     }
 
     /**
+     * Return config name
+     *
      * @return string
      */
     public function getConfigName()
     {
         return $this->_configName;
+    }
+
+    /**
+     * Get more then one params of config
+     *
+     * @param $key
+     * @param bool $isRequired
+     * @throws Exception
+     * @return array
+     */
+    public function gets($key = null, $isRequired = true)
+    {
+        $params = null;
+
+        try {
+            $params = $this->xpath($this->_config, $key, $isRequired);
+        } catch (\Exception $e) {
+            throw new Exception('Could nof found config params -> ' . $this->getConfigName() . ':' . $key, [], $e);
+        }
+
+        if (!is_array($params)) {
+            throw new Exception('Ожидается массив данных.', $params);
+        }
+
+        return $params;
+    }
+
+    /**
+     * (PHP 5 &gt;= 5.0.0)<br/>
+     * Return the current element
+     * @link http://php.net/manual/en/iterator.current.php
+     * @return mixed Can return any type.
+     */
+    public function current()
+    {
+        return new Config((array)current($this->_config), $this->_configName . '_' . $this->position);
+    }
+
+    /**
+     * (PHP 5 &gt;= 5.0.0)<br/>
+     * Move forward to next element
+     * @link http://php.net/manual/en/iterator.next.php
+     * @return void Any returned value is ignored.
+     */
+    public function next()
+    {
+        next($this->_config);
+        ++$this->position;
+    }
+
+    /**
+     * (PHP 5 &gt;= 5.0.0)<br/>
+     * Return the key of the current element
+     * @link http://php.net/manual/en/iterator.key.php
+     * @return mixed scalar on success, or null on failure.
+     */
+    public function key()
+    {
+        return $this->position;
+    }
+
+    /**
+     * (PHP 5 &gt;= 5.0.0)<br/>
+     * Checks if current position is valid
+     * @link http://php.net/manual/en/iterator.valid.php
+     * @return boolean The return value will be casted to boolean and then evaluated.
+     * Returns true on success or false on failure.
+     */
+    public function valid()
+    {
+        return !empty(current($this->_config));
+    }
+
+    /**
+     * (PHP 5 &gt;= 5.0.0)<br/>
+     * Rewind the Iterator to the first element
+     * @link http://php.net/manual/en/iterator.rewind.php
+     * @return void Any returned value is ignored.
+     */
+    public function rewind()
+    {
+        if (!empty($this->_config)) {
+            reset($this->_config);
+        }
+
+        $this->position = 0;
     }
 }

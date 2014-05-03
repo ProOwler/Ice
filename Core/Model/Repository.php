@@ -1,17 +1,9 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 22.01.14
- * Time: 1:44
- */
-
 namespace ice\core;
-
 
 final class Model_Repository
 {
-    const DATA_PROVIDER_KEY = 'Buffer:model_repository/';
+    const DATA_PROVIDER_KEY = 'Registry:model_repository/';
 
     private $_dataProvider = null;
 

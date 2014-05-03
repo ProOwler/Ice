@@ -2,14 +2,14 @@
 <html>
 <head>
     <meta charset=utf-8>
-    <title><?= $Html_Head_Title[0]->render() ?></title>
+    <title><?= $title ?></title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <?= $Html_Head_Resources[0]->render() ?>
+    <?= $Html_Head_Resources[0] ?>
 </head>
 <body>
 <div id="Layout_Main">
     <div class="container">
-        <?= $layout['Action'][0]->render() ?>
+        <?= $main ?>
     </div>
 </div>
 </body>

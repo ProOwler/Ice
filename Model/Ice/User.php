@@ -1,12 +1,4 @@
 <?php
-/**
- * Created by JetBrains PhpStorm.
- * User: dp
- * Date: 21.02.13
- * Time: 23:51
- * To change this template use File | Settings | File Templates.
- */
-
 namespace ice\model\ice;
 
 use ice\core\Model;
@@ -79,10 +71,10 @@ class User extends Model
     public static function getNewUser($user_name, $user_pk = null)
     {
         return User::create(
-            array(
+            [
                 'user_pk' => $user_pk,
                 'user_name' => $user_name
-            )
+            ]
         )->insert();
     }
 
@@ -139,10 +131,10 @@ class User extends Model
     {
         $roles = $this->linked('Role')
             ->addOptions(
-                array(
+                [
                     'name' => '::Delegate_Name',
                     'delegate' => $roleName
-                )
+                ]
             );
 
         return $roles->count();

@@ -5,12 +5,12 @@ use ice\core\Action;
 use ice\Exception;
 
 /**
- * Created by PhpStorm.
- * User: dp
- * Date: 27.10.13
- * Time: 15:12
+ * Cli Service Action
+ *
+ * @package ice\core\action
+ * @author dp
  */
-abstract class Service extends Action implements Cliable, Factory
+abstract class Service extends Action implements Cli, Factory
 {
     const STATUS_UNKNOWN = 0; // сервис должен быть остановлен
     const STATUS_ON = 1; // сервис должен быть запущен, но пока остановлен
@@ -46,7 +46,7 @@ abstract class Service extends Action implements Cliable, Factory
 
     protected function getDataProviderName()
     {
-        return $this->getConfig()->getParam('dataProviderName');
+        return $this->getConfig()->get('dataProviderName');
     }
 
     protected function getDataProvider()

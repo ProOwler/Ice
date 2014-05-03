@@ -1,24 +1,23 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 07.12.13
- * Time: 11:29
- */
-
 namespace ice\core;
 
-use ice\core\helper\Object;
+use ice\helper\Object;
 use ice\Exception;
 use ice\Ice;
 
+/**
+ * Core view class
+ *
+ * @package ice\core
+ * @author dp
+ */
 class View
 {
     private $_viewRenderClass = null;
     private $_actionName = null;
-    private $_template = null;
+    private $_template = '';
     private $_layout = null;
-    private $_data = array();
+    private $_data = [];
     private $_view = null;
 
     public function __construct($actionClass, $layout)
@@ -78,7 +77,7 @@ class View
             return $this->_viewRenderClass;
         }
 
-        return Ice::getConfig()->getParam('defaultViewRenderClass');
+        return Ice::getConfig()->get('defaultViewRenderClass');
     }
 
     /**
@@ -110,8 +109,9 @@ class View
             $this->_view = $this->fetch();
         } catch (\Exception $e) {
             $this->_view = '';
-            Logger::outputErrors(
-                new Exception('Не удалось отрендерить шаблон "' . $this->_template . '"', $e)
+            $viewRenderClass = $this->getViewRenderClass();
+            Logger::getMessage(
+                new Exception('Не удалось отрендерить шаблон "' . $this->_template . $viewRenderClass::TEMPLATE_EXTENTION . '"', $e)
             );
         }
 
@@ -130,12 +130,18 @@ class View
         /** @var View_Render $viewRenderClass */
         $viewRenderClass = $this->getViewRenderClass();
 
-        return $viewRenderClass::get()->fetch($template, $this->getData(), $viewRenderClass::TEMPLATE_EXTENTION);
+        return $viewRenderClass::getInstance()->fetch($template, $this->getData(), $viewRenderClass::TEMPLATE_EXTENTION);
     }
 
     public function assign($key, $value)
     {
-        $this->_data[$key] = $value;
+        foreach ($value as $index => $val) {
+            if (is_int($index)) {
+                $this->_data[$key][$index] = $val;
+            } else {
+                $this->_data[$index] = $val;
+            }
+        }
     }
 
     public function display()
@@ -149,6 +155,11 @@ class View
         /** @var View_Render $viewRenderClass */
         $viewRenderClass = $this->getViewRenderClass();
 
-        $viewRenderClass::get()->display($template, $this->getData(), $viewRenderClass::TEMPLATE_EXTENTION);
+        $viewRenderClass::getInstance()->display($template, $this->getData(), $viewRenderClass::TEMPLATE_EXTENTION);
+    }
+
+    public function __toString()
+    {
+        return $this->render();
     }
 }

@@ -1,31 +1,30 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 09.12.13
- * Time: 11:33
- */
-
 namespace ice\core\action;
 
 use ice\core\Action;
 use ice\core\Action_Context;
-use ice\core\helper\Object;
+use ice\helper\Object;
 use ice\core\View;
 use ice\data\provider\Request;
 use ice\view\render\Php;
 
-class Front_Ajax extends Action
+class Front_Ajax extends Action implements Ajax
 {
-    protected function init(Action_Context &$context)
+    /**
+     * Initialization action context
+     *
+     * @return Action_Context
+     */
+    protected function init()
     {
-        parent::init($context);
-        $context->setViewRenderClass(Php::VIEW_RENDER_PHP_CLASS);
-        $context->addDataProviderKeys(Request::getDefaultKey());
+        $actionContext = parent::init();
+        $actionContext->setViewRenderClass(Php::VIEW_RENDER_PHP_CLASS);
+        $actionContext->addDataProviderKeys(Request::getDefaultKey());
+        return $actionContext;
     }
 
     /**
-     * Запускает Экшин
+     * Run action
      *
      * @param array $input
      * @param Action_Context $context
@@ -35,34 +34,44 @@ class Front_Ajax extends Action
     {
         if (strpos($input['call'], '/')) {
             $input['params']['controllerAction'] = $input['call'];
-            $input['call'] = 'Legacy';
+            $input['call'] = Legacy::getClass();
         }
 
         $context->addAction($input['call'], $input['params']);
 
-        return array(
-            'frontAjax' => array(
-                'Action' => Object::getName($input['call']),
-            ),
+        return [
+            'frontAjax' => ['Action' => Object::getName($input['call'])],
             'back' => $input['back']
-        );
+        ];
     }
 
-    protected function flush(Action_Context &$context)
+    /**
+     * Flush action context.
+     *
+     * Modify view after flush
+     *
+     * @param View $view
+     * @return View
+     */
+    protected function flush(View $view)
     {
+        $view = parent::flush($view);
+
         /** @var View[] $data */
-        $data = $context->getData();
+        $data = $view->getData();
 
         foreach ($data['frontAjax'] as &$action) {
-            $action = array(
+            $action = [
                 'back' => $data['back'],
-                'result' => array(
+                'result' => [
                     'data' => $data[$action][0]->getData(),
                     'html' => $data[$action][0]->render()
-                )
-            );
+                ]
+            ];
         }
 
-        $context->setData($data);
+        $view->setData($data);
+
+        return $view;
     }
 }

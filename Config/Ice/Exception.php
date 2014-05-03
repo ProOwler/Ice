@@ -1,8 +1,8 @@
 <?php
 
-return array(
-    'notImplemented' => array(
+return [
+    'notImplemented' => [
         'ru' => 'Не реализовано!',
         'en' => 'Not implemented!'
-    )
-);
+    ]
+];

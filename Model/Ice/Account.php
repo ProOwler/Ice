@@ -1,15 +1,7 @@
 <?php
-/**
- * Created by JetBrains PhpStorm.
- * User: dp
- * Date: 24.02.13
- * Time: 15:35
- * To change this template use File | Settings | File Templates.
- */
-
 namespace ice\model\ice;
 
-use ice\core\helper\Request;
+use ice\core\Request;
 use ice\core\Model;
 use ice\Exception;
 

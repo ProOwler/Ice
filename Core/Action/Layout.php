@@ -5,22 +5,20 @@ use ice\core\Action;
 use ice\core\Action_Context;
 
 /**
- * Created by PhpStorm.
- * User: dp
- * Date: 08.12.13
- * Time: 15:48
+ * Layout action
+ *
+ * Common main action
+ *
+ * @package ice\core\action
+ * @author dp
  */
-class Layout extends Action
+class Layout extends Action implements View
 {
-    protected $staticActions = array(
-        'Html_Head_Title',
-        'Html_Head_Resources'
-    );
 
     protected $layout = '';
 
     /**
-     * Запускает Экшин
+     * Run action
      *
      * @param array $input
      * @param Action_Context $context
@@ -28,39 +26,18 @@ class Layout extends Action
      */
     protected function run(array $input, Action_Context &$context)
     {
-        if (isset($input['layoutTemplate'])) {
-            $this->setTemplate($input['layoutTemplate']);
-            unset($input['layoutTemplate']);
+        if (isset($input['template'])) {
+            $context->setTemplate($input['template']);
+            unset($input['template']);
         }
 
-        $action = $input['routeActions'];
-
-        $params = array();
-
-        if (strpos($action, '/')) {
-            $params['controllerAction'] = $action;
-            $action = 'Legacy';
+        if (isset($input['viewRender'])) {
+            $context->setViewRenderClass($input['viewRender']);
+            unset($input['viewRender']);
         }
 
-        $context->addAction($action, $params);
-
-        return array(
-            'layout' => array(
-                'Action' => $action
-            )
-        );
+        foreach ($input['actions'] as $var => $action) {
+            $context->addAction($action, $input, $var);
+        }
     }
-
-    protected function flush(Action_Context &$context)
-    {
-        $data = $context->getData();
-
-        foreach ($data['layout'] as &$action) {
-            $actionKey = $action;
-            $action = $data[$action];
-            unset($data[$actionKey]);
-        }
-
-        $context->setData($data);
-    }
-} 
+}

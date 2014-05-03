@@ -1,28 +1,34 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 10.01.14
- * Time: 23:04
- */
-
 namespace ice\core\action;
 
 use ice\core\Action;
 use ice\core\Action_Context;
 use ice\view\render\Php;
 
+/**
+ * Main action
+ *
+ * Default action
+ *
+ * @package ice\core\action
+ * @author dp
+ */
 class Main extends Action
 {
-
-    protected function init(Action_Context &$context)
+    /**
+     * Initialization action context
+     *
+     * @return Action_Context
+     */
+    protected function init()
     {
-        parent::init($context);
-        $context->setViewRenderClass(Php::VIEW_RENDER_PHP_CLASS);
+        $actionContext = parent::init();
+        $actionContext->setViewRenderClass(Php::VIEW_RENDER_PHP_CLASS);
+        return $actionContext;
     }
 
     /**
-     * Запускает Экшин
+     * Run action
      *
      * @param array $input
      * @param Action_Context $context
@@ -30,9 +36,9 @@ class Main extends Action
      */
     protected function run(array $input, Action_Context &$context)
     {
-        return array(
+        return [
             'welcome' => 'Hello world',
             'test' => 'test'
-        );
+        ];
     }
 }

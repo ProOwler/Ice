@@ -1,63 +1,91 @@
 <?php
 /**
- * Created by PhpStorm.
- * User: dp
- * Date: 25.12.13
- * Time: 0:27
+ * @file Ice module config
+ *
+ * Sets default config params for ice application components
+ *
+ * @author dp
  */
 
-define('OBJECT_CACHE', function_exists('apc_store') ? 'Apc' : 'Buffer');
-define('STRING_CACHE', class_exists('Redis') ? 'Redis' : 'File');
+if (!defined('OBJECT_CACHE')) {
+    define('OBJECT_CACHE', function_exists('apc_store') ? 'Apc' : 'Registry');
+}
+if (!defined('STRING_CACHE')) {
+    define('STRING_CACHE', class_exists('Redis', false) ? 'Redis' : 'File');
+}
 
-return array(
-    'defaultDataSourceKey' => 'Mysqli:default/mysql',
+return [
+    'defaultLayoutAction' => 'ice\action\Layout_Main',
     'defaultViewRenderClass' => 'ice\view\render\Php',
-    'loaderDataProviderKey' => OBJECT_CACHE . ':loader/',
-    'configDataProviderKey' => OBJECT_CACHE . ':config/',
-    'viewRenderDataProviderKey' => OBJECT_CACHE . ':view_render/',
-    'queryTranslatorDataProviderKey' => OBJECT_CACHE . ':query_translator/',
-    'modelSchemeDataProviderKey' => OBJECT_CACHE . ':model_scheme/',
-    'modelMappingDataProviderKey' => OBJECT_CACHE . ':model_mapping/',
-    'dataMappingDataProviderKey' => OBJECT_CACHE . ':data_mapping/',
-    'routerDataProviderKey' => OBJECT_CACHE . ':router/',
-    'actionDataProviderKey' => OBJECT_CACHE . ':action/',
-    'modules' => array(
-        'Ice' => array(
-            'path' => dirname(__DIR__) . '/Ice/',
-            'productionHost' => 'ice.ifacesoft.ru'
-        )
-    ),
-    'dataProviders' => array(
-        'Defined:model' => array(),
-        'Factory:model' => array(),
-        OBJECT_CACHE . ':loader' => array(),
-        OBJECT_CACHE . ':config' => array(),
-        OBJECT_CACHE . ':view_render' => array(),
-        OBJECT_CACHE . ':query_translator' => array(),
-        OBJECT_CACHE . ':model_scheme' => array(),
-        OBJECT_CACHE . ':model_mapping' => array(),
-        OBJECT_CACHE . ':data_mapping' => array(),
-        OBJECT_CACHE . ':router' => array(),
-        OBJECT_CACHE . ':action' => array(),
-        'Request:http' => array(),
-        'Cli:prompt' => array(),
-        'Session:php' => array(),
-        'Buffer:view_render' => array(),
-        'Buffer:model_repository' => array(),
-        'Buffer:action' => array(),
-        STRING_CACHE . ':default' => array(
-            'host' => 'localhost',
-            'port' => 6379
-        ),
-        'Router:default' => array(),
-        'File:tmp' => array(
-            'path' => sys_get_temp_dir() . '/'
-        ),
-        'Mysqli:ice.default' => array(
-            'host' => 'localhost',
-            'username' => 'root',
-            'password' => '',
-            'charset' => 'utf8'
-        )
-    )
-);
+    'modules' => [
+        'Ice' => __DIR__ . '/',
+    ],
+    'configs' => [
+        'ice\core\Model' => [
+            'Ice' => 'ice\model\ice\\'
+        ],
+        'ice\core\Action' => [
+            'Ice' => 'ice\action\\'
+        ],
+        'ice\core\Validator' => [
+            'Ice' => 'ice\validator\\'
+        ]
+    ],
+    'host' => '',
+    'hosts' => [
+        '/localhost/' => 'development',
+        '/.*/' => 'production'
+    ],
+    'environment' => [],
+    'environments' => [
+        'production' => [
+            'dataProviderKeys' => [
+                'ice\core\Data_Source' => 'Mysqli:default/mysql',
+                'ice\core\Loader' => OBJECT_CACHE . ':storage/loader',
+                'ice\core\Action' => OBJECT_CACHE . ':storage/action',
+                'ice\core\Route' => OBJECT_CACHE . ':storage/router',
+                'ice\core\Config' => OBJECT_CACHE . ':storage/config',
+                'ice\core\View_Render' => OBJECT_CACHE . ':storage/view_render',
+                'ice\core\Query_Translator' => OBJECT_CACHE . ':storage/query_translator',
+                'ice\core\Query' => STRING_CACHE . ':cache/query',
+                'ice\core\Model_Mapping' => OBJECT_CACHE . ':storage/model_mapping',
+                'ice\core\Data_Mapping' => OBJECT_CACHE . ':storage/data_mapping',
+                'ice\core\Model_Scheme' => OBJECT_CACHE . ':storage/model_scheme',
+                'ice\core\Validator' => OBJECT_CACHE . ':storage/validator'
+            ],
+            'dataProviders' => [
+                OBJECT_CACHE . ':storage' => [],
+                'Defined:model' => [],
+                'Factory:model' => [],
+                'Redis:cache' => [
+                    'host' => 'localhost',
+                    'port' => 6379
+                ],
+                'File:cache' => [
+                    'path' => dirname(__DIR__) . '/cache/'
+                ],
+                'Request:http' => [],
+                'Cli:prompt' => [],
+                'Session:php' => [],
+                'Registry:view_render' => [],
+                'Registry:model_repository' => [],
+                'Registry:action' => [],
+                'Registry:registry' => [],
+                'Router:route' => [],
+                'Mysqli:default' => [
+                    'host' => 'localhost',
+                    'username' => 'root',
+                    'password' => '',
+                    'charset' => 'utf8'
+                ]
+            ]
+        ],
+        'test' => [
+            'debug' => true,
+        ],
+        'development' => []
+    ],
+    'viewRenders' => [
+        'Php' => []
+    ]
+];

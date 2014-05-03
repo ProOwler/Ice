@@ -1,20 +1,20 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 26.12.13
- * Time: 0:10
- */
-
 namespace ice\core;
 
-use ice\core\helper\Dir;
 use ice\Exception;
+use ice\helper\Dir;
 use ice\Ice;
 
+/**
+ * Ice application logger
+ *
+ * @package ice\core
+ * @author dp
+ */
 class Logger
 {
-    private static $errorTypes = array(
+    /** @var array Codes of error types */
+    private static $errorTypes = [
         0 => 'Error',
         1 => 'E_ERROR',
         2 => 'E_WARNING',
@@ -31,30 +31,32 @@ class Logger
         4096 => 'E_RECOVERABLE_ERROR',
         8192 => 'E_DEPRECATED',
         16384 => 'E_USER_DEPRECATED',
-    );
+    ];
 
-    public static function init($project)
+    /**
+     * Initialization logger
+     */
+    public static function init($isDebug)
     {
         error_reporting(E_ALL | E_STRICT);
 
-        $productionHost = Ice::getConfig()->getParam('modules/' . $project . '/productionHost');
+        ini_set('display_errors', $isDebug);
 
-        if (!isset($productionHost) || !isset($_SERVER['HTTP_HOST']) || $productionHost != $_SERVER['HTTP_HOST']) {
-            ini_set('display_errors', 1);
-        } else {
-            ini_set('display_errors', 0);
-        }
-
-        set_error_handler('Ice\core\Logger::errorHandler');
-        register_shutdown_function('Ice\core\Logger::shutdownHandler');
+        set_error_handler('ice\core\Logger::errorHandler');
+        register_shutdown_function('ice\core\Logger::shutdownHandler');
 
         ini_set('xdebug.var_display_max_depth', -1);
+        ini_set('xdebug.profiler_enable', 1);
+        ini_set('xdebug.profiler_output_dir', Ice::getRootPath() . 'xdebug');
 
         require_once(Ice::getEnginePath() . 'Vendor/FirePHPCore/FirePHP.class.php');
         require_once(Ice::getEnginePath() . 'Vendor/FirePHPCore/fb.php');
         ob_start();
     }
 
+    /**
+     * Method of shutdown handler
+     */
     public static function shutdownHandler()
     {
         if ($error = error_get_last()) {
@@ -69,38 +71,50 @@ class Logger
         }
     }
 
+    /**
+     * Method of error handler
+     *
+     * @param $errno
+     * @param $errstr
+     * @param $errfile
+     * @param $errline
+     * @param $errcontext
+     */
     public static function errorHandler($errno, $errstr, $errfile, $errline, $errcontext)
     {
-        self::outputErrors(new Exception($errstr, $errcontext, null, $errfile, $errline, $errno));
+        self::output(self::getMessage(new Exception($errstr, $errcontext, null, $errfile, $errline, $errno)));
     }
 
-    public static function log($message)
-    {
-        $logDir = Ice::getRootPath() . 'log/' . Ice::getProject() . '/';
-        $logFile = Dir::get($logDir) . 'error_' . date('Y-m-d') . '.log';
-        file_put_contents($logFile, $message, FILE_APPEND);
-    }
-
+    /**
+     * Output log to default output stream
+     *
+     * @param $message
+     */
     public static function output($message)
     {
         echo $message;
     }
 
-    public static function outputErrors(\Exception $exception)
+    /**
+     * Handle error exception
+     *
+     * @param \Exception $exception
+     */
+    public static function getMessage(\Exception $exception)
     {
         $e = $exception->getPrevious();
 
         if ($e) {
-            self::outputErrors($e);
+            self::getMessage($e);
         }
 
-        $delimetr = '[' . date('Y-m-d H:i:s') . '] ' . str_repeat('-', 100);
+        $delimetr = '[' . date('Y-m-d H:i:s') . '] host: ' . Request::host() . ' | ' . str_repeat('-', 100);
 
         $errcontext = $exception instanceof Exception
             ? $exception->getErrContext()
-            : array();
+            : [];
 
-        $log = array();
+        $log = [];
         $log['message'] = self::$errorTypes[$exception->getCode()] . ': ' . $exception->getMessage();
         $log['errPoint'] = '(' . $exception->getFile() . ':' . $exception->getLine() . ')';
         if (!empty($errcontext)) {
@@ -115,7 +129,7 @@ class Logger
         $message .= '<strong style="color: red;">' . $log['message'] . '</strong> <em style="color: blue;">' . $log['errPoint'] . '</em><br/>';
         if (!empty($errcontext)) {
             $message .= '<a style="color:grey; text-decoration: none; border-bottom:1px dashed;" href="#" onclick="$(\'.errcontext\').show();">errcontext</a><br/>';
-            $message .= '<pre class="errcontext" style="color: green; display: none">' . print_r(
+            $message .= '<pre class="errcontext" style="color: green;/* display: none;*/">' . print_r(
                     $errcontext,
                     true
                 ) . '</pre>';
@@ -123,15 +137,27 @@ class Logger
         $message .= nl2br($log['stackTrace'], true);
         $message .= '</div>';
 
-        Logger::output($message);
-
         if (function_exists('fb')) {
             fb($delimetr);
             fb($log['message'] . $log['errPoint'], 'ERROR');
-//            if (!empty($errcontext)) {
-//                fb($errcontext, 'INFO');
-//            }
+            if (!empty($errcontext)) {
+                fb($errcontext, 'INFO');
+            }
             fb(explode("\n", $log['stackTrace']), 'WARN');
         }
+
+        return $message;
+    }
+
+    /**
+     * Save log to file
+     *
+     * @param $message
+     */
+    public static function log($message)
+    {
+        $logDir = Ice::getRootPath() . 'log/' . Ice::getProject() . '/';
+        $logFile = Dir::get($logDir) . 'error_' . date('Y-m-d') . '.log';
+        file_put_contents($logFile, $message, FILE_APPEND);
     }
 }

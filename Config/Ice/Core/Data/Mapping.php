@@ -1,17 +1,10 @@
 <?php
 return array(
-    'namespaces' => array(
-        'Bl' => 'blog\\model\\bl\\',
-        'Ice' => 'ice\\model\\ice\\'
-    ),
-    'tables' => array(
-        'Ice:Session' => 'ice_session',
-        'Ice:Account' => 'ice_account',
-        'Ice:Account_Type' => 'ice_account_type',
-        'Ice:City' => 'ice_city',
-        'Ice:Role' => 'ice_role',
-        'Ice:Route' => 'ice_route',
-        'Ice:User' => 'ice_user',
-        'Ice:User_Role_Link' => 'ice_user_role_link',
-    )
+    'ice\\model\\ice\\Session' => 'ice_session',
+    'ice\\model\\ice\\Account' => 'ice_account',
+    'ice\\model\\ice\\Account_Type' => 'ice_account_type',
+    'ice\\model\\ice\\City' => 'ice_city',
+    'ice\\model\\ice\\Role' => 'ice_role',
+    'ice\\model\\ice\\User' => 'ice_user',
+    'ice\\model\\ice\\User_Role_Link' => 'ice_user_role_link',
 );

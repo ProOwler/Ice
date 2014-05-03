@@ -1,17 +1,10 @@
 <?php
-/**
- * Created by JetBrains PhpStorm.
- * User: dp
- * Date: 22.02.13
- * Time: 10:17
- * To change this template use File | Settings | File Templates.
- */
-
 namespace ice\model\ice;
 
 use ice\core\Data_Provider;
-use ice\core\helper\Date;
-use ice\core\helper\Request;
+use ice\core\Data_Source;
+use ice\helper\Date;
+use ice\core\Request;
 use ice\core\Model;
 
 class Session extends Model
@@ -36,7 +29,7 @@ class Session extends Model
 
         $sessionPk = Data_Provider::getInstance('Session:php/')->get('PHPSESSID');
 
-        self::$_session = Session::getModel($sessionPk, array('/pk', 'user__fk'));
+        self::$_session = Session::getModel($sessionPk, ['/pk', 'user__fk', 'data__json']);
 
         if (self::$_session) {
             self::$_session->update('last_active', Date::getCurrent());
@@ -44,16 +37,16 @@ class Session extends Model
             return self::$_session;
         }
 
-        $sessionData = array(
-            'session_pk' => $sessionPk,
-            'last_active' => Date::getCurrent(),
-            'ip' => Request::ip(),
-            'user_agent' => Request::agent(),
-            'auth_date' => Date::getCurrent(),
-            'user__fk' => User::getGuest()->getPk()
-        );
-
-        return self::$_session = Session::create($sessionData)->insert();
+        return self::$_session = Session::create(
+            [
+                'session_pk' => $sessionPk,
+                'last_active' => Date::getCurrent(),
+                'ip' => Request::ip(),
+                'user_agent' => Request::agent(),
+                'auth_date' => Date::getCurrent(),
+                'user__fk' => User::getGuest()->getPk()
+            ]
+        )->insert();
     }
 
 //    /**
@@ -65,12 +58,12 @@ class Session extends Model
 //
 //        if ($user) {
 //            Session::getCurrent()->update(
-//                array(
+//                [
 //                    'account__fk' => $account->getPk(),
 //                    'last_active' => Helper_Date::toUnix(),
 //                    'auth_date' => Helper_Date::toUnix(),
 //                    '_use_pk' => $user->getPk()
-//                )
+//                ]
 //            );
 //        }
 //    }
@@ -92,10 +85,10 @@ class Session extends Model
      */
     public function switchUser(User $user)
     {
-        $update = array(
+        $update = [
             'user__fk' => $user->getPk(),
             'auth_date' => Date::getCurrent(),
-        );
+        ];
 
         $this->update($update);
     }

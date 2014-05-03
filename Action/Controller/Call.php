@@ -3,20 +3,20 @@
 namespace ice\action;
 
 use Controller_Manager;
-use ice\core\action\Cliable;
+use ice\core\action\Cli;
 use ice\core\Action;
 use ice\core\Action_Context;
 
 /**
- * Created by PhpStorm.
- * User: dp
- * Date: 24.11.13
- * Time: 17:55
+ * Call legacy contoller action
+ *
+ * @package ice\action
+ * @author dp
  */
-class Controller_Call extends Action implements Cliable
+class Controller_Call extends Action implements Cli
 {
     /**
-     * Запускает Экшин
+     * Run action
      *
      * @param array $input
      * @param Action_Context $context

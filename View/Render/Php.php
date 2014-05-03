@@ -1,11 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 11.01.14
- * Time: 23:10
- */
-
 namespace ice\view\render;
 
 use ice\core\Loader;
@@ -22,26 +15,26 @@ class Php extends View_Render
     {
     }
 
-    public function display($template, array $data = array(), $ext)
+    public function display($template, array $data = [], $ext)
     {
         extract($data);
         unset($data);
 
-        $templateName = Loader::getFilePath($template, 'View/Template', $ext);
+        $templateName = Loader::getFilePath($template, $ext, 'View/Template');
 
         try {
             require $templateName;
         } catch (\Exception $e) {
-            throw new Exception('Render error in template "' . $templateName . '"', array(), $e);
+            throw new Exception('Render error in template "' . $templateName . '"', [], $e);
         }
     }
 
-    public function fetch($template, array $data = array(), $ext)
+    public function fetch($template, array $data = [], $ext)
     {
         extract($data);
         unset($data);
 
-        $templateName = Loader::getFilePath($template, 'View/Template', $ext);
+        $templateName = Loader::getFilePath($template, $ext, 'View/Template');
 
         ob_start();
         ob_implicit_flush(false);
@@ -52,7 +45,7 @@ class Php extends View_Render
             require $templateName;
             $view = ob_get_clean();
         } catch (\Exception $e) {
-            Logger::outputErrors(new Exception('Render error in template "' . $templateName . '"', array(), $e));
+            Logger::getMessage(new Exception('Render error in template "' . $templateName . '"', [], $e));
             $view = ob_get_clean();
         }
         return $view;

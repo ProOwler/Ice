@@ -1,20 +1,12 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 10.01.14
- * Time: 9:38
- */
-
 namespace ice\core;
 
+use ice\helper\Object;
 use ice\Ice;
 
 class Data_Mapping
 {
     const DATA_PROVIDER_KEY = 'dataMappingDataProviderKey';
-    const CONFIG_TABLES = 'tables';
-    const CONFIG_PREFIXES = 'prefixes';
 
     /** @var Config */
     private $_dataMappingConfig = null;
@@ -26,31 +18,39 @@ class Data_Mapping
 
     public static function add($modelClass)
     {
-        $dataMappingConfigData = Data_Mapping::get()->getModelClasses();
-        $dataMappingConfigData[$modelClass] = \ice\core\helper\Data_Mapping::getTableNameByClass($modelClass);
+        $dataMappingConfigData = Data_Mapping::getInstance()->getModelClasses();
+
+        if (isset($dataMappingConfigData[$modelClass])) {
+            return;
+        }
+
+        $table = strtolower(Object::getName($modelClass));
+        $namespace = substr($modelClass, 0, strrpos($modelClass, '\\'));
+        $prefix = substr($namespace, strrpos($namespace, '\\') + 1) . '_';
+
+        $dataMappingConfigData[$modelClass] = $prefix . $table;
 
         $dataMapping = new Data_Mapping(Config::create(__CLASS__, $dataMappingConfigData));
 
-
         if ($dataMapping) {
-            Data_Provider::getInstance(Ice::getConfig()->getParam(self::DATA_PROVIDER_KEY) . __CLASS__)
+            Data_Provider::getInstance(Ice::getEnvironment()->get('dataProviderKeys/' . __CLASS__))
                 ->set(__CLASS__, $dataMapping);
         }
     }
 
     public function getModelClasses()
     {
-        return (array)$this->_dataMappingConfig->getParams(self::CONFIG_TABLES, false);
+        return (array)$this->_dataMappingConfig->gets();
     }
 
-    public function getPrefixes()
+    /**
+     * Return array mapping classes of models and their table names
+     *
+     * @return Data_Mapping
+     */
+    public static function getInstance()
     {
-        return (array)$this->_dataMappingConfig->getParams(self::CONFIG_PREFIXES, false);
-    }
-
-    public static function get()
-    {
-        $dataProvider = Data_Provider::getInstance(Ice::getConfig()->getParam(self::DATA_PROVIDER_KEY) . __CLASS__);
+        $dataProvider = Data_Provider::getInstance(Ice::getEnvironment()->get('dataProviderKeys/' . __CLASS__));
 
         $dataMapping = $dataProvider->get(__CLASS__);
 
@@ -58,7 +58,7 @@ class Data_Mapping
             return $dataMapping;
         }
 
-        $dataMappingConfig = Config::get(__CLASS__, array());
+        $dataMappingConfig = Config::getInstance(__CLASS__);
 
         $dataMapping = $dataMappingConfig
             ? new Data_Mapping($dataMappingConfig)
@@ -73,7 +73,7 @@ class Data_Mapping
 
     private static function create()
     {
-        return new Data_Mapping(Config::create(__CLASS__, array()));
+        return new Data_Mapping(\ice\helper\Data_Mapping::syncConfig());
     }
 
     public static function getClass()

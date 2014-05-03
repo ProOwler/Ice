@@ -1,20 +1,13 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 12.01.14
- * Time: 0:24
- */
-
 namespace ice\action;
 
 use CSSmin;
-use ice\core\action\Viewable;
 use ice\core\Action;
+use ice\core\action\View;
 use ice\core\Action_Context;
 use ice\core\Data_Provider;
-use ice\core\helper\Dir;
-use ice\core\helper\Json;
+use ice\helper\Dir;
+use ice\helper\Json;
 use ice\core\Loader;
 use ice\core\Model;
 use ice\data\provider\Router;
@@ -22,48 +15,38 @@ use ice\Ice;
 use ice\view\render\Php;
 use JSMin;
 
-class Html_Head_Resources extends Action implements Viewable
+/**
+ * Action of generation js and css for includes into html tag head (<script.. and <link..)
+ *
+ * @package ice\action
+ * @author dp
+ */
+class Html_Head_Resources extends Action implements View
 {
     protected $layout = '';
 
     const RESOURCE_TYPE_JS = 'js';
     const RESOURCE_TYPE_CSS = 'css';
 
-    const BUFFER_DATA_PROVIDER_KEY = 'Buffer:action/';
-
-    public static $config = array(
-        'Ice' => array(
-            'jquery' => array(
+    public static $config = [
+        'Ice' => [
+            'jquery' => [
                 'path' => 'Vendor/jquery-ui-1.10.3/',
-                self::RESOURCE_TYPE_JS => array(
-                    'js/jquery-1.9.1.js',
-                    '-js/jquery-ui-1.10.3.custom.min.js'
-                ),
-                self::RESOURCE_TYPE_CSS => array(
-                    '-css/smoothness/jquery-ui-1.10.3.custom.min.css'
-                )
-            ),
-            'bootstrap' => array(
+                self::RESOURCE_TYPE_JS => ['js/jquery-1.9.1.js', '-js/jquery-ui-1.10.3.custom.min.js'],
+                self::RESOURCE_TYPE_CSS => ['-css/smoothness/jquery-ui-1.10.3.custom.min.css']
+            ],
+            'bootstrap' => [
                 'path' => 'Vendor/bootstrap-3.1.0/',
-                self::RESOURCE_TYPE_JS => array(
-                    '-js/bootstrap.min.js'
-                ),
-                self::RESOURCE_TYPE_CSS => array(
-                    '-css/bootstrap.min.css',
-                    '-css/bootstrap-theme.min.css'
-                )
-            ),
-            'module' => array(
+                self::RESOURCE_TYPE_JS => ['-js/bootstrap.min.js'],
+                self::RESOURCE_TYPE_CSS => ['-css/bootstrap.min.css', '-css/bootstrap-theme.min.css']
+            ],
+            'module' => [
                 'path' => null,
-                self::RESOURCE_TYPE_JS => array(
-                    'js/Ice.js'
-                ),
-                self::RESOURCE_TYPE_CSS => array(
-                    'css/Ice.css'
-                )
-            )
-        )
-    );
+                self::RESOURCE_TYPE_JS => ['js/Ice.js'],
+                self::RESOURCE_TYPE_CSS => ['css/Ice.css']
+            ]
+        ]
+    ];
 
     public static function appendJs($resource)
     {
@@ -77,12 +60,15 @@ class Html_Head_Resources extends Action implements Viewable
 
     private static function append($resourceType, $resource)
     {
-        $dataProvider = Data_Provider::getInstance(self::BUFFER_DATA_PROVIDER_KEY . __CLASS__);
+        /** @var Action $actionClass */
+        $actionClass = self::getClass();
+
+        $dataProvider = Data_Provider::getInstance($actionClass::getRegistryDataProviderKey());
 
         $customResources = $dataProvider->get($resourceType);
 
         if (!$customResources) {
-            $customResources = array();
+            $customResources = [];
         }
 
         array_push($customResources, $resource);
@@ -90,20 +76,25 @@ class Html_Head_Resources extends Action implements Viewable
         $dataProvider->set($resourceType, $customResources);
     }
 
-    protected function init(Action_Context &$context)
+    /**
+     * Initialization action context
+     *
+     * @return Action_Context
+     */
+    protected function init()
     {
-        parent::init($context);
-        $context->setViewRenderClass(Php::VIEW_RENDER_PHP_CLASS);
-        $context->addDataProviderKeys(
-            array(
-                Router::getDefaultKey(),
-                self::BUFFER_DATA_PROVIDER_KEY . __CLASS__
-            )
-        );
+        $actionContext = parent::init();
+        $actionContext->setViewRenderClass(Php::VIEW_RENDER_PHP_CLASS);
+
+        /** @var Action $actionClass */
+        $actionClass = self::getClass();
+
+        $actionContext->addDataProviderKeys([Router::getDefaultKey(), $actionClass::getRegistryDataProviderKey()]);
+        return $actionContext;
     }
 
     /**
-     * Запускает Экшин
+     * Run action
      *
      * @param array $input
      * @param Action_Context $context
@@ -111,14 +102,14 @@ class Html_Head_Resources extends Action implements Viewable
      */
     protected function run(array $input, Action_Context &$context)
     {
-        $resources = array(
-            self::RESOURCE_TYPE_JS => array(),
-            self::RESOURCE_TYPE_CSS => array()
-        );
+        $resources = [
+            self::RESOURCE_TYPE_JS => [],
+            self::RESOURCE_TYPE_CSS => []
+        ];
 
-        foreach ($this->getConfig()->getParams() as $moduleName => $configResources) {
+        foreach ($this->getConfig()->gets() as $moduleName => $configResources) {
             foreach ($configResources as $resourceKey => $resourceItem) {
-                $source = Ice::getConfig()->getParam('modules/' . $moduleName . '/path') . 'Resource/';
+                $source = Ice::getConfig()->get('modules/' . $moduleName) . 'Resource/';
 
                 $res = $moduleName . '/' . $resourceKey . '/';
 
@@ -136,30 +127,32 @@ class Html_Head_Resources extends Action implements Viewable
                     : Ice::getRootPath() . 'resource/' . $moduleName . '/style.pack.css';
 
                 foreach ($resourceItem[self::RESOURCE_TYPE_JS] as $resource) {
-                    $resources[self::RESOURCE_TYPE_JS][] = array(
-                        'source' => $source . ltrim($resource, '-'),
-                        'resource' => $jsResource,
-                        'url' => $resourceItem['path']
-                                ? '/' . $res . $resourceKey . '.pack.js'
-                                : '/' . $moduleName . '/javascript.pack.js',
-                        'pack' => $resource[0] != '-'
-                    );
+                    $resources[self::RESOURCE_TYPE_JS][] =
+                        [
+                            'source' => $source . ltrim($resource, '-'),
+                            'resource' => $jsResource,
+                            'url' => $resourceItem['path']
+                                    ? '/' . $res . $resourceKey . '.pack.js'
+                                    : '/' . $moduleName . '/javascript.pack.js',
+                            'pack' => $resource[0] != '-'
+                        ];
                 }
 
                 foreach ($resourceItem[self::RESOURCE_TYPE_CSS] as $resource) {
-                    $resources[self::RESOURCE_TYPE_CSS][] = array(
-                        'source' => $source . ltrim($resource, '-'),
-                        'resource' => $cssResource,
-                        'url' => $resourceItem['path']
-                                ? '/' . $res . $resourceKey . '.pack.css'
-                                : '/' . $moduleName . '/style.pack.css',
-                        'pack' => $resource[0] != '-'
-                    );
+                    $resources[self::RESOURCE_TYPE_CSS][] =
+                        [
+                            'source' => $source . ltrim($resource, '-'),
+                            'resource' => $cssResource,
+                            'url' => $resourceItem['path']
+                                    ? '/' . $res . $resourceKey . '.pack.css'
+                                    : '/' . $moduleName . '/style.pack.css',
+                            'pack' => $resource[0] != '-'
+                        ];
                 }
             }
         }
 
-        $resourceName = crc32(Json::decode($input['route']['params__json'])['pattern']);
+        $resourceName = crc32($input['params']['pattern']);
 
         $jsFile = $resourceName . '.pack.js';
         $cssFile = $resourceName . '.pack.css';
@@ -171,21 +164,23 @@ class Html_Head_Resources extends Action implements Viewable
         $cssResource = Dir::get(Ice::getRootPath() . 'resource/' . $cssRes) . $cssFile;
 
         foreach (array_keys(Action::getCallStack()) as $actionClass) {
-            if (file_exists($jsSource = Loader::getFilePath($actionClass, 'Resource/js', '.js', false))) {
-                $resources[self::RESOURCE_TYPE_JS][] = array(
-                    'source' => $jsSource,
-                    'resource' => $jsResource,
-                    'url' => '/' . $jsRes . $jsFile,
-                    'pack' => true
-                );
+            if (file_exists($jsSource = Loader::getFilePath($actionClass, '.js', 'Resource/js', false))) {
+                $resources[self::RESOURCE_TYPE_JS][] =
+                    [
+                        'source' => $jsSource,
+                        'resource' => $jsResource,
+                        'url' => '/' . $jsRes . $jsFile,
+                        'pack' => true
+                    ];
             }
-            if (file_exists($cssSource = Loader::getFilePath($actionClass, 'Resource/css', '.css', false))) {
-                $resources[self::RESOURCE_TYPE_CSS][] = array(
-                    'source' => $cssSource,
-                    'resource' => $cssResource,
-                    'url' => '/' . $cssRes . $cssFile,
-                    'pack' => true
-                );
+            if (file_exists($cssSource = Loader::getFilePath($actionClass, '.css', 'Resource/css', false))) {
+                $resources[self::RESOURCE_TYPE_CSS][] =
+                    [
+                        'source' => $cssSource,
+                        'resource' => $cssResource,
+                        'url' => '/' . $cssRes . $cssFile,
+                        'pack' => true
+                    ];
             }
         }
 
@@ -197,31 +192,33 @@ class Html_Head_Resources extends Action implements Viewable
 
         if (!empty($input['js'])) {
             foreach ($input['js'] as $resource) {
-                $resources[self::RESOURCE_TYPE_JS][] = array(
-                    'source' => Loader::getFilePath($resource, 'Resource/js', '.js'),
-                    'resource' => $jsResource,
-                    'url' => '/' . $jsRes . $jsFile,
-                    'pack' => true
-                );
+                $resources[self::RESOURCE_TYPE_JS][] =
+                    [
+                        'source' => Loader::getFilePath($resource, '.js', 'Resource/js'),
+                        'resource' => $jsResource,
+                        'url' => '/' . $jsRes . $jsFile,
+                        'pack' => true
+                    ];
             }
         }
         if (!empty($input['css'])) {
             foreach ($input['css'] as $resource) {
-                $resources[self::RESOURCE_TYPE_CSS][] = array(
-                    'source' => Loader::getFilePath($resource, 'Resource/css', '.css'),
-                    'resource' => $cssResource,
-                    'url' => '/' . $cssRes . $cssFile,
-                    'pack' => true
-                );
+                $resources[self::RESOURCE_TYPE_CSS][] =
+                    [
+                        'source' => Loader::getFilePath($resource, '.css', 'Resource/css'),
+                        'resource' => $cssResource,
+                        'url' => '/' . $cssRes . $cssFile,
+                        'pack' => true
+                    ];
             }
         }
 
         $this->pack($resources);
 
-        return array(
+        return [
             self::RESOURCE_TYPE_JS => array_unique(array_column($resources[self::RESOURCE_TYPE_JS], 'url')),
             self::RESOURCE_TYPE_CSS => array_unique(array_column($resources[self::RESOURCE_TYPE_CSS], 'url'))
-        );
+        ];
     }
 
     private function pack($resources)
@@ -238,7 +235,7 @@ class Html_Head_Resources extends Action implements Viewable
         if (!class_exists('CSSMin', false)) {
             require_once(Ice::getEnginePath() . 'Vendor/CSSmin.php');
         }
-        $handlers = array();
+        $handlers = [];
 
         $CSSmin = new CSSMin();
 

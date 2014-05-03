@@ -1,24 +1,22 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 19.01.14
- * Time: 14:27
- */
-
 namespace ice\data\provider;
 
 use ice\core\Data_Provider;
+use ice\Exception;
 
 class Mysqli extends Data_Provider
 {
+    public static $connections = [];
+
     /**
      * @param $connection \Mysqli
+     * @throws Exception
      * @return bool
      */
     protected function connect(&$connection)
     {
         $connection = mysqli_init();
+
         $isConnected = $connection->real_connect(
             $this->getOption('host'),
             $this->getOption('username'),
@@ -26,6 +24,10 @@ class Mysqli extends Data_Provider
             null,
             $this->getOption('port')
         );
+
+        if (!$isConnected) {
+            throw new Exception('#' . $connection->errno . ': ' . $connection->error);
+        }
 
         $connection->set_charset($this->getOption('charset'));
 
@@ -42,6 +44,7 @@ class Mysqli extends Data_Provider
     }
 
     /**
+     * Get instance connection of data provider
      * @return \Mysqli
      */
     public function getConnection()
@@ -55,36 +58,38 @@ class Mysqli extends Data_Provider
      */
     protected function close(&$connection)
     {
-        return $connection->close();
+        $connection->close();
+        $connection = null;
+        return true;
     }
 
     public function get($key = null)
     {
-        // TODO: Implement get() method.
+        throw new Exception('Implement get() method.');
     }
 
     public function set($key, $value, $ttl = 3600)
     {
-        // TODO: Implement set() method.
+        throw new Exception('Implement set() method.');
     }
 
     public function delete($key)
     {
-        // TODO: Implement delete() method.
+        throw new Exception('Implement delete() method.');
     }
 
     public function inc($key, $step = 1)
     {
-        // TODO: Implement inc() method.
+        throw new Exception('Implement inc() method.');
     }
 
     public function dec($key, $step = 1)
     {
-        // TODO: Implement dec() method.
+        throw new Exception('Implement dec() method.');
     }
 
     public function flushAll()
     {
-        // TODO: Implement flushAll() method.
+        throw new Exception('Implement flushAll() method.');
     }
 }

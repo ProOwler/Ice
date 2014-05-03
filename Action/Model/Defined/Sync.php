@@ -1,14 +1,7 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 10.02.14
- * Time: 22:03
- */
-
 namespace ice\action;
 
-use ice\core\action\Cliable;
+use ice\core\action\Cli;
 use ice\core\Action;
 use ice\core\Action_Context;
 use ice\core\Data_Mapping;
@@ -18,10 +11,16 @@ use ice\core\model\Defined;
 use ice\core\Model;
 use ice\Exception;
 
-class Model_Defined_Sync extends Action implements Cliable
+/**
+ * Class sinchronizate defined models
+ *
+ * @package ice\action
+ * @author dp
+ */
+class Model_Defined_Sync extends Action implements Cli
 {
     /**
-     * Запускает Экшин
+     * Run action
      *
      * @param array $input
      * @param Action_Context $context
@@ -33,7 +32,7 @@ class Model_Defined_Sync extends Action implements Cliable
         $dataSource = Data_Source::getDefault();
 
         /** @var Model[] $modelClasses */
-        $modelClasses = array_keys(Data_Mapping::get()->getModelClasses());
+        $modelClasses = array_keys(Data_Mapping::getInstance()->getModelClasses());
 
         foreach ($modelClasses as $modelClass) {
             $modelClass = Model::getClass($modelClass);

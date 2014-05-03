@@ -1,16 +1,8 @@
 <?php
-/**
- * Created by JetBrains PhpStorm.
- * User: dp
- * Date: 24.02.13
- * Time: 22:49
- * To change this template use File | Settings | File Templates.
- */
-
 namespace ice\model\ice;
 
-use ice\core\helper\Date;
-use ice\core\helper\Request;
+use ice\helper\Date;
+use ice\core\Request;
 use ice\core\model\Factory_Delegate;
 
 class Account_Type_Login_Password extends Account_Type implements Factory_Delegate
@@ -26,14 +18,14 @@ class Account_Type_Login_Password extends Account_Type implements Factory_Delega
     public function register(array $data)
     {
         return Account::create(
-            array(
+            [
                 'account_type' => Account_Type::getDelegate($data['accountType']),
                 'ip' => Request::ip(),
                 'reg_date' => Date::getCurrent(),
                 'login' => $data['login'],
                 'password' => password_hash($data['password'], PASSWORD_DEFAULT),
                 'user' => User::getNewUser($data['login'])
-            )
+            ]
         )->insert();
     }
 

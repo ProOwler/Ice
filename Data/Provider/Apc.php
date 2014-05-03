@@ -1,11 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 21.12.13
- * Time: 1:17
- */
-
 namespace ice\data\provider;
 
 use ice\core\Data_Provider;
@@ -14,6 +7,7 @@ use ice\Ice;
 
 class Apc extends Data_Provider
 {
+    public static $connections = [];
 
     public function get($key = null)
     {

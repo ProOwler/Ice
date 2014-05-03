@@ -1,31 +1,40 @@
 <?php
+
 namespace ice\core\action;
 
+use ice\action\Layout_Legacy;
 use ice\core\Action;
 use ice\core\Action_Context;
 use ice\core\Model;
 use ice\data\provider\Router;
+use ice\Ice;
 use ice\view\render\Php;
 
 /**
- * Created by PhpStorm.
- * User: dp
- * Date: 08.12.13
- * Time: 12:53
+ * Entry point of app
+ *
+ * @package ice\core\action
+ * @author dp
  */
-class Front extends Action
+class Front extends Action implements View
 {
     const LEGACY_CONTENT = 'content';
 
-    protected function init(Action_Context &$context)
+    /**
+     * Initialization action context
+     *
+     * @return Action_Context
+     */
+    protected function init()
     {
-        parent::init($context);
-        $context->setViewRenderClass(Php::VIEW_RENDER_PHP_CLASS);
-        $context->addDataProviderKeys(Router::getDefaultKey());
+        $actionContext = parent::init();
+        $actionContext->setViewRenderClass(Php::VIEW_RENDER_PHP_CLASS);
+        $actionContext->addDataProviderKeys(Router::getDefaultKey());
+        return $actionContext;
     }
 
     /**
-     * Запускает Экшин
+     * Run action
      *
      * @param array $input
      * @param Action_Context $context
@@ -33,41 +42,31 @@ class Front extends Action
      */
     protected function run(array $input, Action_Context &$context)
     {
-        $route = $input['route'];
+        $params = $input['params'];
+        $params['actions'] = $input['actions'];
 
-        $layoutParams = array(
-            'layoutTemplate' => $route['layoutTemplate'],
-            'routeActions' => $route['actions'],
-            'routeTitle' => $route['titleAction']
-        );
+        $layout =  $input['layout'];
 
-        if (strpos($route['layoutAction'], '/')) {
-            $layoutParams['controllerAction'] = $route['layoutAction'];
-            $route['layoutAction'] = 'Layout_Legacy';
-            if (isset($input['action'])) {
-                $layoutParams['action'] = $input['action'];
-            }
+        $action = $layout['action'];
+
+        if (isset($layout['template'])) {
+            $params['template'] = $layout['template'];
         }
 
-        $context->addAction($route['layoutAction'], $layoutParams);
-
-        return array(
-            'front' => array(
-                'Action_Layout' => $route['layoutAction']
-            )
-        );
-    }
-
-    protected function flush(Action_Context &$context)
-    {
-        $data = $context->getData();
-
-        foreach ($data['front'] as &$layout) {
-            $layoutKey = $layout;
-            $layout = $data[$layout];
-            unset($data[$layoutKey]);
+        if (isset($layout['viewRender'])) {
+            $params['viewRender'] = $layout['viewRender'];
         }
 
-        $context->setData($data);
+        /**
+         * Legacy support
+         *
+         * IcEngine compatibility
+         */
+        if (strpos($action, '/')) {
+            $params['action'] = $action;
+            $action = Layout_Legacy::getClass();
+        }
+
+        $context->addAction($action, $params, 'front');
     }
 }

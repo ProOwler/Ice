@@ -1,20 +1,26 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 24.12.13
- * Time: 23:02
- */
-
 namespace ice\core;
 
 use ice\Exception;
 use ice\Ice;
 
+/**
+ * Class Loader
+ *
+ * @package ice\core
+ * @author dp
+ */
 class Loader
 {
-    private static $_autoLoaders = array();
+    /** @var array Registrered autoloaders */
+    private static $_autoLoaders = [];
 
+    /**
+     * Load class
+     *
+     * @param $class
+     * @throws \ice\Exception
+     */
     public static function load($class)
     {
         if (class_exists($class)) {
@@ -22,7 +28,7 @@ class Loader
         }
 
         /** @var Data_Provider $dataProvider */
-        $dataProvider = Data_Provider::getInstance(Ice::getConfig()->getParam('loaderDataProviderKey'));
+        $dataProvider = Data_Provider::getInstance(Ice::getEnvironment()->get('dataProviderKeys/' . __CLASS__));
 
         $fileName = $dataProvider->get($class);
         if ($fileName) {
@@ -30,7 +36,7 @@ class Loader
             return;
         }
 
-        $fileName = self::getFilePath($class, 'Core', '.php');
+        $fileName = self::getFilePath($class, '.php');
 
 //        if (function_exists('fb')) {
 //            fb($fileName);
@@ -46,7 +52,7 @@ class Loader
      * Return class path
      *
      * @param $class
-     * @param $type
+     * @param $path
      * @param $ext
      * @param bool $isRequired
      * @param bool $isNotNull
@@ -56,8 +62,8 @@ class Loader
      */
     public static function getFilePath(
         $class,
-        $type,
         $ext,
+        $path = '',
         $isRequired = true,
         $isNotNull = false,
         $isOnlyFirst = false
@@ -65,58 +71,57 @@ class Loader
     {
         $fileName = null;
 
-        $stack = array();
+        $stack = [];
 
         $extClass = explode(':', $class);
         if (count($extClass) == 2) {
-            list($type, $class) = $extClass;
+            list($path, $class) = $extClass;
         }
 
-        $modulesConfigName = Ice::getConfig()->getConfigName() . ':modules';
+        foreach (Ice::getModules() as $modulePath) {
+            $isNotLegacy = strpos(ltrim($class, '\\'), '\\');
 
-        foreach (Ice::getConfig()->getParams('modules') as $module) {
+            if ($isNotLegacy) {
+                $modulePath = substr($modulePath, 0, strrpos($modulePath, '/', -2)) . '/';
+            }
+
+            $typePathes = [];
+            $typePathes[] = $path ? $path . '/' : $path;
+
             $filePath = '';
-
-            $moduleConfig = new Config($module, $modulesConfigName);
-
             foreach (explode('\\', $class) as $filePathPart) {
                 $filePathPart[0] = strtoupper($filePathPart[0]);
-                $filePath .= '/' . $filePathPart;
+                $filePath .= $filePathPart . '/';
             }
 
-            $filePath = str_replace('_', '/', $filePath);
-//
-            $modulePath = $moduleConfig->getParam('path');
+            $filePath = str_replace('_', '/', rtrim($filePath, '/'));
 
-            $isLegacy = !strpos(ltrim($class, '\\'), '\\') || $type == 'Config';
+            if (!$isNotLegacy && !$path) {
+                array_push($typePathes, 'Model/', 'Class/');
+            }
 
-            if ($isLegacy) {
-                if ($type == 'Core') {
-                    $type = 'Class';
+            foreach ($typePathes as $typePath) {
+                $fileName = $modulePath . $typePath . $filePath . $ext;
+
+                $stack[] = $fileName;
+
+//                if (function_exists('fb')) {
+//                    fb($fileName . ' ' . (int)file_exists($fileName));
+//                }
+
+                if (file_exists($fileName)) {
+                    return $fileName;
                 }
-
-                $fileName = $modulePath . $type . $filePath . $ext;
-            } else {
-                $modulePath = substr($modulePath, 0, strrpos(substr($modulePath, 0, -1), '/'));
-                $fileName = $modulePath . $filePath . $ext;
             }
 
-            $stack[] = $fileName;
-
-            if (file_exists($fileName)) {
-                return $fileName;
-            }
-
-            if ($isOnlyFirst || !$isLegacy) {
+            if ($isOnlyFirst || $isNotLegacy) {
                 break;
             }
         }
 
         if ($isRequired) {
-            throw new Exception('Не удалось найти путь до файла "' . $type . ':' . $class . '"', $stack);
+            throw new Exception('File for "' . $class . '" not found', $stack);
         }
-
-//        fb($stack);
 
         return $isNotNull ? reset($stack) : null;
     }

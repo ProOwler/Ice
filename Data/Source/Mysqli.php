@@ -1,11 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 30.12.13
- * Time: 23:52
- */
-
 namespace ice\data\source;
 
 use ice\core\Data;
@@ -24,21 +17,12 @@ class Mysqli extends Data_Source
      */
     private function getStatement(Query &$query)
     {
-        list($sql, $binds) = $query->getResult();
-
-        fb($query->getResult());
+        list($sql, $binds) = $query->translate();
 
         $statement = $this->getConnection()->prepare($sql);
 
         if (!$statement) {
-            throw new Exception (
-                '<u>Не удалось подготовить запрос</u>: ' . "\n" . '<em style="color: green;">' . print_r(
-                    $query->getResult(),
-                    true
-                ) . "</em>\n" .
-                $this->getConnection()->error,
-                $this->getConnection()->errno
-            );
+            throw new Exception('#' . $this->getConnection()->errno . ': ' . $this->getConnection()->error, $query->translate());
         }
 
         $types = '';
@@ -46,12 +30,12 @@ class Mysqli extends Data_Source
             $types .= gettype($bind)[0];
         }
 
-        $values = array(str_replace('N', 's', $types));
+        $values = [str_replace('N', 's', $types)];
 
         if (!empty($types)) {
             $values = array_merge($values, $binds);
             if (call_user_func_array(array($statement, 'bind_param'), $this->makeValuesReferenced($values)) === false) {
-                throw new Exception('Не удалось забиндить параметры', $query->getResult());
+                throw new Exception('Не удалось забиндить параметры', $query->translate());
             }
         }
 
@@ -60,7 +44,7 @@ class Mysqli extends Data_Source
 
     private function makeValuesReferenced($arr)
     {
-        $refs = array();
+        $refs = [];
         foreach ($arr as $key => $value) {
             $refs[$key] = & $arr[$key];
         }
@@ -79,7 +63,7 @@ class Mysqli extends Data_Source
         if ($statement->execute() === false) {
             $e = new Exception(
                 'sql execute select error #' . $statement->errno . ': ' . $statement->error,
-                $query->getResult()
+                $query->translate()
             );
 
             $statement->close();
@@ -92,7 +76,7 @@ class Mysqli extends Data_Source
         if ($result === false) {
             $e = new Exception (
                 'sql get result select error #' . $statement->errno . ': ' . $statement->error,
-                $query->getResult()
+                $query->translate()
             );
 
             $statement->close();
@@ -100,14 +84,14 @@ class Mysqli extends Data_Source
             throw $e;
         }
 
-        $data = array();
+        $data = [];
 
         /** @var Model $modelclass */
         $modelclass = $query->getModelClass();
 
         $data[Data::RESULT_MODEL_CLASS] = $modelclass;
 
-        $data[DATA::RESULT_ROWS] = $modelclass
+        $data[Data::RESULT_ROWS] = $modelclass
             ? array_column($result->fetch_all(MYSQLI_ASSOC), null, $modelclass::getPkName())
             : $result->fetch_all(MYSQLI_ASSOC);
 
@@ -117,6 +101,15 @@ class Mysqli extends Data_Source
 
         $statement->free_result();
         $statement->close();
+
+        if ($query->isCalcFoundRows()) {
+            $result = $this->getConnection()->query('SELECT FOUND_ROWS()');
+            $foundRows = $result->fetch_row();
+            $result->close();
+            $data[Data::FOUND_ROWS] = reset($foundRows);
+        } else {
+            $data[Data::FOUND_ROWS] = $data[DATA::NUM_ROWS];
+        }
 
         return $data;
     }
@@ -133,7 +126,7 @@ class Mysqli extends Data_Source
         if ($statement->execute() === false) {
             $e = new Exception (
                 'sql execute insert error #' . $statement->errno . ': ' . $statement->error,
-                $query->getResult()
+                $query->translate()
             );
 
             $statement->close();
@@ -141,7 +134,7 @@ class Mysqli extends Data_Source
             throw $e;
         }
 
-        $data = array();
+        $data = [];
 
         /** @var Model $modelclass */
         $modelclass = $query->getModelClass();
@@ -154,7 +147,7 @@ class Mysqli extends Data_Source
         if ($data[DATA::AFFECTED_ROWS] == 1) {
             $row = reset($data[DATA::RESULT_ROWS]);
             $row[$modelclass::getPkName()] = $data[DATA::INSERT_ID];
-            $data[DATA::RESULT_ROWS] = array($row);
+            $data[DATA::RESULT_ROWS] = [$row];
         } else {
             throw new Exception('need testing multiinsert in one query');
         }
@@ -176,7 +169,7 @@ class Mysqli extends Data_Source
         if ($statement->execute() === false) {
             $e = new Exception (
                 'sql execute update error #' . $statement->errno . ': ' . $statement->error,
-                $query->getResult()
+                $query->translate()
             );
 
             $statement->close();
@@ -184,7 +177,7 @@ class Mysqli extends Data_Source
             throw $e;
         }
 
-        $data = array();
+        $data = [];
 //
 //        $data[DATA::AFFECTED_ROWS] = $statement->affected_rows;
 //        $data[DATA::INSERT_ID] = $statement->insert_id;
@@ -206,7 +199,7 @@ class Mysqli extends Data_Source
         if ($statement->execute() === false) {
             $e = new Exception (
                 'sql execute delete error #' . $statement->errno . ': ' . $statement->error,
-                $query->getResult()
+                $query->translate()
             );
 
             $statement->close();
@@ -214,7 +207,7 @@ class Mysqli extends Data_Source
             throw $e;
         }
 
-        $data = array();
+        $data = [];
 //
 //        $data[DATA::AFFECTED_ROWS] = $statement->affected_rows;
 //        $data[DATA::INSERT_ID] = $statement->insert_id;
@@ -225,16 +218,19 @@ class Mysqli extends Data_Source
     }
 
     /**
+     * Get connection instance
+     *
+     * @param string|null $scheme
      * @return \Mysqli
      */
-    public function getConnection()
+    public function getConnection($scheme = null)
     {
         return parent::getConnection();
     }
 
     public function getDataScheme()
     {
-        $dataScheme = array();
+        $dataScheme = [];
 
         $sql = 'SELECT * FROM information_schema.columns WHERE TABLE_SCHEMA="' . $this->getScheme() . '"';
 
@@ -248,12 +244,13 @@ class Mysqli extends Data_Source
                 $default = '[]';
             }
 
-            $dataScheme[$row['TABLE_NAME']][$columnName] = array(
-                'type' => $row['COLUMN_TYPE'],
-                'nullable' => $row['IS_NULLABLE'] == 'YES',
-                'default' => $default,
-                'comment' => $row['COLUMN_COMMENT']
-            );
+            $dataScheme[$row['TABLE_NAME']][$columnName] =
+                [
+                    'type' => $row['COLUMN_TYPE'],
+                    'nullable' => $row['IS_NULLABLE'] == 'YES',
+                    'default' => $default,
+                    'comment' => $row['COLUMN_COMMENT']
+                ];
         }
 
         $result->close();

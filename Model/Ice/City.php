@@ -84,10 +84,10 @@ class City extends Model
             $city = Model_Manager::byQuery($query);
 
             if (!$city) {
-                $fields = array(
+                $fields = [
                     'city_translit' => $geoIpCity['city'],
                     'location__fk' => reset($locations)['location_pk']
-                );
+                ];
 
                 $city = City::create($fields)->save();
             }

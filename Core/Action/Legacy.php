@@ -6,15 +6,18 @@ use ice\core\Action;
 use ice\core\Action_Context;
 
 /**
- * Created by PhpStorm.
- * User: dp
- * Date: 10.12.13
- * Time: 12:21
+ * Legacy action
+ *
+ * Action of call Controller/action for IcEngine compatibility
+ * @link https://code.google.com/p/icengine/
+ *
+ * @package ice\core\action
+ * @author dp
  */
 class Legacy extends Action
 {
     /**
-     * Запускает Экшин
+     * Run action
      *
      * @param array $input
      * @param Action_Context $context
@@ -22,20 +25,36 @@ class Legacy extends Action
      */
     protected function run(array $input, Action_Context &$context)
     {
-        $controllerAction = explode('/', $input['controllerAction']);
-        unset($input['controllerAction']);
+        $controllerAction = explode('/', $input['action']);
+        unset($input['action']);
 
         $controllerTask = Controller_Manager::call($controllerAction[0], $controllerAction[1], $input);
 
         $output = $controllerTask->getTransaction()->buffer();
-        $output['tempalate'] = $controllerTask->getTemplate();
+        $output['template'] = $controllerTask->getTemplate();
 
         return $output;
     }
 
-    protected function flush(Action_Context &$context)
+    /**
+     * Flush action context.
+     *
+     * Modify view after flush
+     *
+     * @param View $view
+     * @return View
+     */
+    protected function flush(\ice\core\View $view)
     {
-        parent::flush($context);
-        $context->setTemplate($context->getData()['template']);
+        $view = parent::flush($view);
+
+        /** @var View[] $data */
+        $data = $view->getData();
+
+        if (isset($data['template'])) {
+            $view->setTemplate($data['template']);
+        }
+
+        return $view;
     }
 }

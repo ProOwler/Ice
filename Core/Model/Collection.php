@@ -1,16 +1,10 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 30.12.13
- * Time: 18:44
- */
-
 namespace ice\core\model;
 
 use ice\core\Data;
 use ice\core\Data_Source;
 use ice\core\Model;
+use ice\core\model\collection\Iterator;
 use ice\core\Query;
 use ice\Exception;
 use IteratorAggregate;
@@ -67,7 +61,7 @@ class Collection implements IteratorAggregate
 
     public function getCount()
     {
-        return count($this->getData()->getRows());
+        return count($this->getData());
     }
 
     /**
@@ -124,16 +118,10 @@ class Collection implements IteratorAggregate
         }
 
         if ($this->_data === null) {
-            $this->setData(
-                new Data(
-                    array(
-                        DATA::RESULT_MODEL_CLASS => $this->_modelClass,
-                    )
-                )
-            );
+            $this->setData(new Data([DATA::RESULT_MODEL_CLASS => $this->_modelClass]));
         }
 
-        $this->getData()->addRow($model->get());
+        $this->getData()->setRow($model->getPk(), $model->get());
 
         return $this;
     }
@@ -142,7 +130,7 @@ class Collection implements IteratorAggregate
     {
         $modelClass = $this->_modelClass;
 
-        $this->setData($modelClass::getQueryBuilder('insert')->values($this->getRows())->execute($dataSource));
+        $this->setData($modelClass::getQueryBuilder('insert')->values($this->getData()->getRows())->execute($dataSource));
 
         return $this;
     }
@@ -171,11 +159,6 @@ class Collection implements IteratorAggregate
         return $this;
     }
 
-    public function getRows()
-    {
-        return $this->getData()->getRows();
-    }
-
     public function getRow($pk = null)
     {
         return $this->getData()->getRow($pk);
@@ -195,7 +178,7 @@ class Collection implements IteratorAggregate
      */
     public function getIterator()
     {
-        return $this->getData();
+        return new Iterator($this->getData());
     }
 
     public function get($pk)
@@ -218,5 +201,14 @@ class Collection implements IteratorAggregate
         $modelClass = $this->_modelClass;
 
         return $modelClass::create($this->getData()->delete($pk));
+    }
+
+    public function filter($filterScheme)
+    {
+        /** @var Model $modelClass */
+        $modelClass = $this->_modelClass;
+        $collection = $modelClass::getCollection();
+        $collection->setData($this->getData()->filter($filterScheme));
+        return $collection;
     }
 }

@@ -2,20 +2,22 @@
 
 namespace ice\action;
 
-use ice\core\action\Ajaxable;
+use ice\core\action\Ajax;
 use ice\core\Action;
 use ice\core\Action_Context;
 
 /**
- * Created by PhpStorm.
- * User: dp
- * Date: 14.12.13
- * Time: 16:27
+ * Logout action class
+ *
+ * Flush session
+ *
+ * @package ice\action
+ * @author dp
  */
-class Account_Logout extends Action implements Ajaxable
+class Account_Logout extends Action implements Ajax
 {
     /**
-     * Запускает Экшин
+     * Run action
      *
      * @param array $input
      * @param Action_Context $context
@@ -23,9 +25,7 @@ class Account_Logout extends Action implements Ajaxable
      */
     protected function run(array $input, Action_Context &$context)
     {
-
-
-        $_SESSION = array();
+        $_SESSION = [];
         Session::getCurrent()->delete();
 
         $redirect = Request::referer();
@@ -38,8 +38,6 @@ class Account_Logout extends Action implements Ajaxable
             $redirect ? $redirect : '/'
         );
 
-        return array(
-            'redirect' => $redirect
-        );
+        return ['redirect' => $redirect];
     }
 }

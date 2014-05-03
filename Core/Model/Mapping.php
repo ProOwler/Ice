@@ -1,11 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 10.01.14
- * Time: 9:38
- */
-
 namespace ice\core;
 
 use ice\Ice;
@@ -22,11 +15,9 @@ class Model_Mapping
         $this->_modelMappingConfig = $modelMappingConfig;
     }
 
-    public static function get($modelClass)
+    public static function getInstance($modelClass)
     {
-        $dataProvider = Data_Provider::getInstance(
-            Ice::getConfig()->getParam('modelMappingDataProviderKey') . $modelClass
-        );
+        $dataProvider = Data_Provider::getInstance(Ice::getEnvironment()->get('dataProviderKeys/' . __CLASS__));
 
         $modelMapping = $dataProvider->get($modelClass);
 
@@ -34,7 +25,7 @@ class Model_Mapping
             return $modelMapping;
         }
 
-        $modelMappingConfig = Config::get($modelClass, array(), self::POSTFIX);
+        $modelMappingConfig = Config::getInstance($modelClass, [], self::POSTFIX);
 
         $modelMapping = $modelMappingConfig
             ? new Model_Mapping($modelMappingConfig)
@@ -51,7 +42,7 @@ class Model_Mapping
     {
         $columnNames = $modelClass::getScheme()->getColumnNames();
 
-        $modelSchemeConfigData = array();
+        $modelSchemeConfigData = [];
 
         foreach ($columnNames as $columnName) {
             $modelSchemeConfigData[$columnName] = $columnName;
@@ -64,6 +55,6 @@ class Model_Mapping
 
     public function getFieldNames()
     {
-        return $this->_modelMappingConfig->getParams();
+        return $this->_modelMappingConfig->gets();
     }
 }

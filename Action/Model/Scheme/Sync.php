@@ -1,21 +1,20 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 03.02.14
- * Time: 22:50
- */
-
 namespace ice\action;
 
 use ice\core\Action;
-use ice\core\action\Cliable;
+use ice\core\action\Cli;
 use ice\core\Action_Context;
 
-class Model_Scheme_Sync extends Action implements Cliable
+/**
+ * Action of synchronize model scheme
+ *
+ * @package ice\action
+ * @author dp
+ */
+class Model_Scheme_Sync extends Action implements Cli
 {
     /**
-     * Запускает Экшин
+     * Run action
      *
      * @param array $input
      * @param Action_Context $context

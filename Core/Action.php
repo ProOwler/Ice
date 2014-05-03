@@ -1,50 +1,39 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 27.10.13
- * Time: 15:13
- */
-
 namespace ice\core;
 
-use ice\core\helper\Json;
-use ice\core\helper\Object;
+use ice\core\action\Cli;
 use ice\Exception;
+use ice\helper\Json;
+use ice\helper\Object;
 use ice\Ice;
 
+/**
+ * Abstract core class action
+ *
+ * @package ice\core
+ * @author dp
+ */
 abstract class Action
 {
-    /**
-     * Переопределяемый конфиг
-     *
-     * @var array
-     */
-    public static $config = array();
+    const REGISTRY_DATA_PROVIDER_KEY = 'Registry:action/';
 
-    /**
-     * @var array
-     */
-    private static $callStack = array();
+    /** @var array Переопределяемый конфиг */
+    public static $config = [];
 
-    protected $staticActions = array();
+    /** @var array Стек вызовов экшинов */
+    private static $callStack = [];
 
+    /** @var array предопределенные экшины */
+    protected $staticActions = [];
+
+    /** @var string|null Emmet style layout */
     protected $layout = null;
-
-    /**
-     * @return string
-     */
-    public function getLayout()
-    {
-        return $this->layout;
-    }
-
-    /**
-     * @var array
-     */
+    /** @var array Default input data */
+    protected $inputDefaults = [];
+    /** @var array input data validators */
+    protected $inputValidators = [];
+    /** @var array Loaded config */
     private $_config = null;
-
-    protected $inputDefaults = array();
 
     /**
      * Приватный конструктор. Создаем через Action::create()
@@ -54,107 +43,145 @@ abstract class Action
     }
 
     /**
+     * Call named action
+     *
      * @param array $data
      * @param int $level
      * @return View
      * @throws Exception
      */
-    public static function call(array $data = array(), $level = 0)
+    public static function call(array $data = [], $level = 0)
     {
+        $view = null;
         $action = null;
 
         /** @var Action $actionClass */
         $actionClass = get_called_class();
 
+        /** @var Action $action */
+        $action = $actionClass::getInstance();
+
+        $actionContext = null;
+
         try {
-            $timePoint = null;
+            $actionContext = $action->init();
 
-            /** @var Action $action */
-            $action = $actionClass::get();
-
-            $actionContext = new Action_Context($actionClass, $action->getStaticActions(), $action->getLayout());
-
-            $action->init($actionContext);
-
-            $input = array_merge($action->getInput($actionContext->getDataProviderKeys()), $data);
+            $input = $action->getInput($actionContext->getDataProviderKeys(), $data);
 
             self::pushToCallStack($actionClass, $input);
 
-            $actionContext->setData((array)$action->run($input, $actionContext));
+            if (empty($input['errors'])) {
+                $actionContext->setData((array)$action->run($input, $actionContext));
+            } else {
+                $actionContext->setData($input);
+                $view = $actionContext->getView();
+                unset($actionContext);
+                return $view;
+            }
 
             foreach ($actionContext->getActions() as $subActionClass => $actionData) {
                 $level += 1;
-                $data = array();
+                $data = [];
+
+                $subActionClass = Object::getClassByClassShortName(__CLASS__, $subActionClass);
 
                 foreach ($actionData as $subActionKey => $subActionParams) {
                     $data[$subActionKey] = $subActionClass::call($subActionParams, $level);
                 }
 
-                $actionContext->assign($subActionClass, $data);
+                $actionContext->getView()->assign(Object::getName($subActionClass), $data);
             }
 
-            $action->flush($actionContext);
+            $view = $action->flush($actionContext->getView());
+
+            unset($actionContext);
 
         } catch (\Exception $e) {
-            throw new Exception('Не удалось вызвать экшин "' . $actionClass . '"', array(), $e);
+            if (isset($actionContext)) {
+                unset($actionContext);
+            }
+
+            $view = Logger::getMessage($e);
+
+            if ($action instanceof Cli) {
+                echo $view . "\n";
+            }
         }
 
-        return $actionContext->getView();
+        return $view;
     }
 
     /**
+     * Get action object by name
+     *
+     * @param null $actionName
      * @throws Exception
      * @return Action
      */
-    public static function get()
+    public static function getInstance($actionName = null)
     {
-        /** @var Action $actionClassName */
-        $actionClassName = get_called_class();
+        /** @var Action $actionClass */
+        $actionClass = $actionName
+            ? Object::getClassByClassShortName(__CLASS__, $actionName)
+            : get_called_class();
 
         /** @var Data_Provider $dataProvider */
-        $dataProvider = Data_Provider::getInstance(
-            Ice::getConfig()->getParam('actionDataProviderKey') . $actionClassName
-        );
+        $dataProvider = Data_Provider::getInstance(Ice::getEnvironment()->get('dataProviderKeys/' . __CLASS__));
 
         /** @var Action $action */
-        $action = $dataProvider->get($actionClassName);
+        $action = $dataProvider->get($actionClass);
 
         if ($action) {
             return $action;
         }
 
-        $action = $actionClassName::create();
+        $action = new $actionClass();
 
-        if (!$action) {
-            throw new Exception('Could not create action "' . $actionClassName . '"');
-        }
-
-        $dataProvider->set($actionClassName, $action);
+        $dataProvider->set($actionClass, $action);
 
         return $action;
     }
 
     /**
-     * @return Action
+     * Initialization action context
+     *
+     * @return Action_Context
      */
-    private static function create()
+    protected function init()
     {
-        $actionClassName = get_called_class();
-
-        return new $actionClassName();
+        return new Action_Context($this->getClass(), $this->staticActions, $this->getLayout());
     }
 
     /**
-     * @param Action_Context $actionContext
+     * Return action class
+     *
+     * @return string
      */
-    protected function init(Action_Context &$actionContext)
+    public static function getClass()
     {
+        return get_called_class();
     }
 
-    private function getInput($dataProviderKeys)
+    /**
+     * Return Emmet style layout
+     *
+     * @return string
+     */
+    public function getLayout()
     {
-        $input = array();
+        return $this->layout;
+    }
 
+    /**
+     * Gets input data from data providers
+     *
+     * @param $dataProviderKeys
+     * @param array $input
+     * @throws \ice\Exception
+     * @return array
+     */
+    private function getInput($dataProviderKeys, array $input)
+    {
         /** @var Data_Provider $dataProvider */
         $dataProvider = null;
 
@@ -169,25 +196,34 @@ abstract class Action
             }
         }
 
+        $input['errors'] = Validator::validateByScheme($input, $this->getInputValidators());
+
         return $input;
     }
 
-    protected function getInputDefaults()
+    /**
+     * Return input data defaults
+     *
+     * @return array
+     */
+    private function getInputDefaults()
     {
         $config = $this->getConfig();
 
-        if (!$config) {
-            return $this->inputDefaults;
-        }
+        if ($config) {
+            $inputDefaults = $config->gets('inputDefaults', false);
 
-        if (!empty($config->getParams('inputDefaults', false))) {
-            $this->inputDefaults = array_merge($this->inputDefaults, $this->getConfig()->getParams('inputDefaults'));
+            if (!empty($inputDefaults)) {
+                $this->inputDefaults = array_merge($this->inputDefaults, $inputDefaults);
+            }
         }
 
         return $this->inputDefaults;
     }
 
     /**
+     * Return action config
+     *
      * @return Config
      */
     public function getConfig()
@@ -198,23 +234,40 @@ abstract class Action
 
         $className = $this->getClass();
 
-        $this->_config = Config::get($className, $className::$config);
+        $this->_config = Config::getInstance($className, $className::$config);
 
         return $this->_config;
     }
 
-    public static function getClass()
+    private function getInputValidators()
     {
-        return get_called_class();
+        $config = $this->getConfig();
+
+        if ($config) {
+            $inputValidators = $config->gets('inputValidators', false);
+
+            if (!empty($inputValidators)) {
+                $this->inputValidators = array_merge($this->inputDefaults, $inputValidators);
+            }
+        }
+
+        return $this->inputValidators;
     }
 
+    /**
+     * Push executed action in call stack array
+     *
+     * @param $actionClass
+     * @param $input
+     * @throws Exception
+     */
     private static function pushToCallStack($actionClass, $input)
     {
         $actionName = Object::getName($actionClass);
         $inputJson = Json::encode($input);
 
         if (!isset(self::$callStack[$actionName])) {
-            self::$callStack[$actionName] = array();
+            self::$callStack[$actionName] = [];
         }
 
         if (in_array($inputJson, self::$callStack[$actionName])) {
@@ -225,7 +278,7 @@ abstract class Action
     }
 
     /**
-     * Запускает Экшин
+     * Run action
      *
      * @param array $input
      * @param Action_Context $actionContext
@@ -234,24 +287,46 @@ abstract class Action
     abstract protected function run(array $input, Action_Context &$actionContext);
 
     /**
-     * @param Action_Context $context
+     * Flush action context.
+     *
+     * Modify view after flush
+     *
+     * @param View $view
+     * @return View
      */
-    protected function flush(Action_Context &$context)
+    protected function flush(View $view)
     {
+        return $view;
     }
 
+    /**
+     * Return current action call stack
+     *
+     * @return array
+     */
     public static function getCallStack()
     {
         return self::$callStack;
     }
 
+    /**
+     * Get hash of input data
+     *
+     * @param $data
+     * @return string
+     */
     public static function getHash($data)
     {
         return (hash('crc32b', igbinary_serialize($data)));
     }
 
-    private function getStaticActions()
+    /**
+     * Return data provider key of action
+     *
+     * @return string
+     */
+    public static function getRegistryDataProviderKey()
     {
-        return $this->staticActions;
+        return self::REGISTRY_DATA_PROVIDER_KEY . get_called_class();
     }
 }

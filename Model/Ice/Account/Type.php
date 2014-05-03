@@ -1,18 +1,9 @@
 <?php
-
 namespace ice\model\ice;
 
 use ice\core\model\Factory;
 use ice\core\Validator;
 
-
-/**
- * Created by JetBrains PhpStorm.
- * User: dp
- * Date: 24.02.13
- * Time: 15:35
- * To change this template use File | Settings | File Templates.
- */
 abstract class Account_Type extends Factory
 {
     /**

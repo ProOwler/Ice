@@ -1,17 +1,12 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 22.01.14
- * Time: 1:26
- */
-
 namespace ice\data\provider;
 
 use ice\core\Data_Provider;
+use ice\Exception;
 
 class Session extends Data_Provider
 {
+    public static $connections = [];
 
     /**
      * @param $connection
@@ -54,26 +49,26 @@ class Session extends Data_Provider
 
     public function set($key, $value, $ttl = 3600)
     {
-        // TODO: Implement set() method.
+        throw new Exception('Implement set() method.');
     }
 
     public function delete($key)
     {
-        // TODO: Implement delete() method.
+        throw new Exception('Implement delete() method.');
     }
 
     public function inc($key, $step = 1)
     {
-        // TODO: Implement inc() method.
+        throw new Exception('Implement inc() method.');
     }
 
     public function dec($key, $step = 1)
     {
-        // TODO: Implement dec() method.
+        throw new Exception('Implement dec() method.');
     }
 
     public function flushAll()
     {
-        // TODO: Implement flushAll() method.
+        throw new Exception('Implement flushAll() method.');
     }
 }

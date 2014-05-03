@@ -2,20 +2,22 @@
 
 namespace ice\action;
 
-use ice\core\action\Cliable;
+use ice\core\action\Cli;
 use ice\core\Action;
 use ice\core\Action_Context;
 
 /**
- * Created by PhpStorm.
- * User: dp
- * Date: 23.11.13
- * Time: 17:33
+ * Hello world cli action
+ *
+ * Test run cli action
+ *
+ * @package ice\action
+ * @author dp
  */
-class Hello_World_Cli extends Action implements Cliable
+class Hello_World_Cli extends Action implements Cli
 {
     /**
-     * Запускает Экшин
+     * Run action
      *
      * @param array $input
      * @param Action_Context $context

@@ -1,16 +1,8 @@
 <?php
-
 namespace ice\model\ice;
 
 use ice\core\model\Factory_Delegate;
 
-/**
- * Created by JetBrains PhpStorm.
- * User: denis
- * Date: 14.04.13
- * Time: 18:26
- * To change this template use File | Settings | File Templates.
- */
 class Account_Type_Phone_Password extends Account_Type implements Factory_Delegate
 {
     /**
@@ -36,14 +28,14 @@ class Account_Type_Phone_Password extends Account_Type implements Factory_Delega
             }
         }
 
-        $fields = array(
+        $fields = [
             'account_type__fk' => Account_Type::getDelegate($data['accountType'])->key(),
             'ip' => Request::ip(),
             'reg_date' => Helper_Date::toUnix(),
             'phone' => $data['phone'],
             'password' => password_hash($data['password'], PASSWORD_DEFAULT),
             'user__fk' => User::getNewUser($data['user_name'])->key()
-        );
+        ];
 
         return Account::create($fields)->insert();
     }
@@ -66,9 +58,7 @@ class Account_Type_Phone_Password extends Account_Type implements Factory_Delega
             $config['message_template'],
             $data['phone'],
             $data['user_name'],
-            array(
-                'password' => $data['password']
-            ),
+            ['password' => $data['password']],
             $messageProvider->key()
         );
 

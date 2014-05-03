@@ -3,21 +3,23 @@
 namespace ice\action;
 
 use ice\core\Action;
-use ice\core\action\Viewable;
 use ice\core\Action_Context;
-use ice\core\helper\Object;
+use ice\helper\Object;
+use ice\core\View;
 
 /**
- * Created by PhpStorm.
- * User: dp
- * Date: 14.12.13
- * Time: 16:14
+ * Authorization form
+ *
+ * View of authorization form
+ *
+ * @package ice\action
+ * @author dp
  */
-class Account_Authorization extends Action implements Viewable
+class Account_Authorization extends Action implements \ice\core\action\View
 {
 
     /**
-     * Запускает Экшин
+     * Run action
      *
      * @param array $input
      * @param Action_Context $context
@@ -29,12 +31,21 @@ class Account_Authorization extends Action implements Viewable
 //            Helper_Header::redirect('/');
 //        }
 
-        return array('accountType' => $input['accountType']);
+        return ['accountType' => $input['accountType']];
     }
 
-    protected function flush(Action_Context &$context)
+    /**
+     * Flush action context.
+     *
+     * Modify view after flush
+     *
+     * @param View $view
+     * @return View
+     */
+    protected function flush(View $view)
     {
-        $context->setTemplate(Object::getName($this->getClass()) . '_' . $context->getData()['accountType']);
-        parent::flush($context);
+        $view = parent::flush($view);
+        $view->setTemplate(Object::getName($this->getClass()) . '_' . $view->getData()['accountType']);
+        return $view;
     }
 }

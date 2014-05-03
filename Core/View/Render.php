@@ -1,42 +1,42 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 10.01.14
- * Time: 23:09
- */
-
 namespace ice\core;
 
-
+use ice\helper\Object;
 use ice\Ice;
 
 abstract class View_Render
 {
-    public static $config = array();
+    public static $config = [];
 
     private $_config = null;
 
-    private function __construct()
+    private function __construct(array $config = [])
     {
+        $this->_config = Config::getInstance($this->getClass(), array_merge(self::$config, $config));
     }
 
     abstract public function init();
 
-    abstract public function display($template, array $data = array(), $ext);
+    abstract public function display($template, array $data = [], $ext);
 
-    abstract public function fetch($template, array $data = array(), $ext);
+    abstract public function fetch($template, array $data = [], $ext);
 
     /**
      * @return View_Render
      */
-    public static function get()
+    public static function getInstance()
     {
         /** @var View_Render $viewRenderClass */
         $viewRenderClass = get_called_class();
 
+        $config = Ice::getConfig()->gets('viewRenders/' . Object::getName($viewRenderClass));
+
+        $dataProviderKey = isset($config['dataProviderKey'])
+            ? Ice::getConfig()->get('viewRenders/' . Object::getName($viewRenderClass) . '/dataProviderKey')
+            : Ice::getEnvironment()->get('dataProviderKeys/' . __CLASS__);
+
         /** @var Data_Provider $dataProvider */
-        $dataProvider = Data_Provider::getInstance(Ice::getConfig()->getParam('viewRenderDataProviderKey'));
+        $dataProvider = Data_Provider::getInstance($dataProviderKey);
 
         $viewRender = $dataProvider->get($viewRenderClass); //$viewRender = null;
 
@@ -45,7 +45,7 @@ abstract class View_Render
         }
 
         /** @var View_Render $viewRender */
-        $viewRender = new $viewRenderClass();
+        $viewRender = new $viewRenderClass($config);
         $viewRender->init();
 
         $dataProvider->set($viewRenderClass, $viewRender);
@@ -55,11 +55,6 @@ abstract class View_Render
 
     public function getConfig()
     {
-        if ($this->_config !== null) {
-            return $this->_config;
-        }
-
-        $this->_config = Config::get($this->getClass(), self::$config);
         return $this->_config;
     }
 

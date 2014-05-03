@@ -1,26 +1,37 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 30.12.13
- * Time: 19:00
- */
-
 namespace ice\core;
 
 use ice\Exception;
+use ice\helper\Json;
+use ice\helper\Object;
+use ice\helper\String;
+use ice\Ice;
 
+/**
+ * Core class Query
+ *
+ * Query bulider
+ *
+ * @package ice\core
+ * @author dp
+ */
 class Query
 {
     const SQL_STATEMENT_SELECT = 'SELECT';
     const SQL_STATEMENT_INSERT = 'INSERT';
     const SQL_STATEMENT_UPDATE = 'UPDATE';
     const SQL_STATEMENT_DELETE = 'DELETE';
+    const SQL_FUNCTION_COUNT = 'COUNT';
     const SQL_CLAUSE_FROM = 'FROM';
     const SQL_CLAUSE_INTO = 'INTO';
+    const SQL_CLAUSE_SET = 'SET';
     const SQL_CLAUSE_VALUES = 'VALUES';
     const SQL_CLAUSE_INNER_JOIN = 'INNER JOIN';
     const SQL_CLAUSE_LEFT_JOIN = 'LEFT JOIN';
+    const SQL_CLAUSE_KEYWORD_JOIN = 'JOIN';
+    const SQL_CLAUSE_WHERE = 'WHERE';
+    const SQL_CLAUSE_ORDER = 'ORDER';
+    const SQL_CLAUSE_LIMIT = 'LIMIT';
     const CLAUSE_WHERE_LOGICAL_OPERATOR = 'lo';
     const CLAUSE_WHERE_FIELD_NAME = 'fn';
     const CLAUSE_WHERE_COMPARSION_OPERATOR = 'co';
@@ -35,60 +46,27 @@ class Query
     const SQL_COMPARSION_OPERATOR_GREATER_OR_EQUAL = '>=';
     const SQL_COMPARSION_OPERATOR_LESS_OR_EQUAL = '<=';
     const SQL_COMPARSION_KEYWORD_LIKE = 'LIKE';
+    const SQL_COMPARSION_KEYWORD_RLIKE = 'RLIKE';
+    const SQL_COMPARSION_KEYWORD_RLIKE_REVERSE = 'RLIKE_REVERSE';
     const SQL_COMPARSION_KEYWORD_IN = 'IN';
+    const SQL_COMPARSION_KEYWORD_NOT_IN = 'NOT IN';
     const SQL_COMPARSION_KEYWORD_BETWEEN = 'BETWEEN';
     const SQL_COMPARSION_KEYWORD_IS_NULL = 'IS NULL';
     const SQL_COMPARSION_KEYWORD_IS_NOT_NULL = 'IS NOT NULL';
+    const SQL_CALC_FOUND_ROWS = 'SQL_CALC_FOUND_ROWS';
 
-
-    const ASC = 'ASC';
-    const DELETE = 'DELETE';
-    const INSERT = 'INSERT';
-    const VALUES = 'VALUES';
-    const REPLACE = 'REPLACE';
-    const SHOW = 'SHOW';
-    const UPDATE = 'UPDATE';
-    const SET = 'SET';
-    const DESC = 'DESC';
-    const DISTINCT = 'DISTINCT';
-    const EXPLAIN = 'EXPLAIN';
-    const FROM = 'FROM';
-    const GROUP = 'GROUP';
-    const HAVING = 'HAVING';
-    const INDEX = 'INDEX';
-    const INDEXES = 'INDEXES';
-    const INNER_JOIN = 'INNER JOIN';
-    const JOIN = 'JOIN';
-    const LEFT_JOIN = 'LEFT JOIN';
-    const RIGHT_JOIN = 'RIGHT JOIN';
-    const ORDER = 'ORDER';
-    const SELECT = 'SELECT';
-    const TABLE = 'TABLE';
-    const TYPE = 'TYPE';
-    const LIMIT_COUNT = 'LIMITCOUNT';
-    const LIMIT_OFFSET = 'LIMITOFFSET';
-    const VALUE = 'VALUE';
-    const WHERE = 'WHERE';
-
-    const SQL_OR = 'OR';
-    const USE_INDEX = 'USE INDEX';
-    const FORCE_INDEX = 'FORCE INDEX';
-    const CALC_FOUND_ROWS = 'CALC_FOUND_ROWS';
-    const BIND = 'BIND';
-
+    private $_parts = [];
     private $_result = null;
-    private $_statementType = null;
-    private $_select = array();
-    private $_where = array();
-    private $_limit = array();
-    private $_join = array();
-    private $_values = array();
-    private $_set = array();
-    private $_selectCount = false;
-
     private $_modelClass = null;
     private $_tableAlias = null;
 
+    /**
+     * Private constructor of query builder. Create: Query::getInstance()->...
+     *
+     * @param $statementType
+     * @param $modelClass
+     * @param $tableAlias
+     */
     private function __construct($statementType, $modelClass, $tableAlias)
     {
         $this->_statementType = $statementType;
@@ -98,61 +76,76 @@ class Query
         }
     }
 
+    /**
+     * Create instance for query builder
+     *
+     * @param $statementType
+     * @param $modelClass
+     * @param null $tableAlias
+     * @return Query
+     */
     public static function getInstance($statementType, $modelClass, $tableAlias = null)
     {
         return new Query($statementType, $modelClass, $tableAlias);
     }
 
     /**
-     * @return string
+     * Set data of query part select
+     *
+     * @param $fieldNames
+     * @param null $alias
+     * @return $this
      */
-    public function getStatementType()
+    public function select($fieldNames, $alias = null)
     {
-        return $this->_statementType;
-    }
-
-    public function select($column, $alias = null)
-    {
-        if (empty($column)) {
+        if (empty($fieldNames)) {
             return $this;
         }
 
         /** @var Model $modelClass */
         $modelClass = $this->getModelClass();
 
-        if ($column == '*') {
-            $column = $modelClass::getFieldNames();
+        if ($fieldNames == '*') {
+            $fieldNames = $modelClass::getFieldNames();
         }
 
-        if (is_array($column)) {
-            foreach ($column as $columnName => $alias) {
-                if (is_string($columnName)) {
-                    $this->select($columnName, $alias);
+        if (is_array($fieldNames)) {
+            foreach ($fieldNames as $fieldName => $alias) {
+                if (is_string($fieldName)) {
+                    $this->select($fieldName, $alias);
                 } else {
                     $this->select($alias);
                 }
             }
 
             return $this;
+        } else {
+            $fields = explode(',', $fieldNames);
+            if (count($fields) > 1) {
+                $this->select($fields);
+                return $this;
+            }
         }
 
-        if (empty($this->_select)) {
-            $pkName = $modelClass::getPkName();
-            $this->_select[$pkName] = $pkName;
-        }
+//        if (empty($this->_parts[Query::SQL_STATEMENT_SELECT])) {
+//            $pkName = $modelClass::getPkName();
+//            $this->_parts[Query::SQL_STATEMENT_SELECT][$pkName] = $pkName;
+//        }
 
-        $column = $modelClass::getFieldName($column);
+        $fieldNames = $modelClass::getFieldName($fieldNames);
 
         if (!$alias) {
-            $alias = $column;
+            $alias = $fieldNames;
         }
 
-        $this->_select[$alias] = $column;
+        $this->_parts[Query::SQL_STATEMENT_SELECT][$alias] = $fieldNames;
 
         return $this;
     }
 
     /**
+     * Return model class for query
+     *
      * @return string
      */
     public function getModelClass()
@@ -161,6 +154,8 @@ class Query
     }
 
     /**
+     * Execute current query
+     *
      * @param Data_Source $dataSource
      * @return Data
      */
@@ -170,6 +165,8 @@ class Query
     }
 
     /**
+     * Get data source for current query
+     *
      * @param Data_Source $dataSource
      * @return Data_Source
      */
@@ -185,117 +182,394 @@ class Query
         return $dataSource;
     }
 
-    public function notNull($fieldName, $sql_logical = Query::SQL_LOGICAL_AND)
+    /**
+     * Set in query part where expression 'IS NOT NULL'
+     *
+     * @param $fieldName
+     * @param string $sqlLogical
+     * @return $this
+     */
+    public function notNull($fieldName, $sqlLogical = Query::SQL_LOGICAL_AND)
     {
         /** @var Model $modelClass */
         $modelClass = $this->getModelClass();
 
         return $this->where(
-            $sql_logical,
+            $sqlLogical,
             $modelClass::getFieldName($fieldName),
             Query::SQL_COMPARSION_KEYWORD_IS_NOT_NULL
         );
     }
 
     /**
-     * @param $sql_logical
+     * Set data in query part where
+     *
+     * @param $sqlLogical
      * @param $fieldName
      * @param $sql_comparsion
      * @param null $value
      * @return $this
      * @throws Exception
      */
-    private function where($sql_logical, $fieldName, $sql_comparsion, $value = null)
+    private function where($sqlLogical, $fieldName, $sql_comparsion, $value = null)
     {
         if ($this->_result !== null) {
             throw new Exception('Запрос уже оттранслирован ранее. Внесение изменений в запрос не принесет никаких результатов');
         }
 
-        $where = array(
-            array(
-                Query::CLAUSE_WHERE_LOGICAL_OPERATOR => $sql_logical,
+        $where = [
+            [
+                Query::CLAUSE_WHERE_LOGICAL_OPERATOR => $sqlLogical,
                 Query::CLAUSE_WHERE_FIELD_NAME => $fieldName,
                 Query::CLAUSE_WHERE_COMPARSION_OPERATOR => $sql_comparsion
-            ),
+            ],
             $value
-        );
+        ];
 
-        $this->_where[] = $where;
+        $this->_parts[Query::SQL_CLAUSE_WHERE][] = $where;
 
         return $this;
     }
 
-    public function isNull($fieldName, $sql_logical = Query::SQL_LOGICAL_AND)
+    /**
+     * Set in query part where expression 'IS NULL'
+     *
+     * @param $fieldName
+     * @param string $sqlLogical
+     * @return $this
+     */
+    public function isNull($fieldName, $sqlLogical = Query::SQL_LOGICAL_AND)
     {
         /** @var Model $modelClass */
         $modelClass = $this->getModelClass();
 
-        return $this->where($sql_logical, $modelClass::getFieldName($fieldName), Query::SQL_COMPARSION_KEYWORD_IS_NULL);
+        return $this->where($sqlLogical, $modelClass::getFieldName($fieldName), Query::SQL_COMPARSION_KEYWORD_IS_NULL);
     }
 
-    public function ne($fieldName, $value, $sql_logical = Query::SQL_LOGICAL_AND)
+    /**
+     * Set in query part where expression '= ?' for primary key column
+     *
+     * @param $value
+     * @param string $sqlLogical
+     * @return $this
+     */
+    public function pk($value, $sqlLogical = Query::SQL_LOGICAL_AND)
     {
+        return $this->eq('/pk', $value, $sqlLogical);
+    }
+
+    /**
+     * Set in query part where expression '= ?'
+     *
+     * @param $fieldName
+     * @param $value
+     * @param string $sqlLogical
+     * @return $this
+     */
+    public function eq($fieldName, $value = null, $sqlLogical = Query::SQL_LOGICAL_AND)
+    {
+        if (is_array($fieldName)) {
+            foreach ($fieldName as $key => $value) {
+                $this->eq($key, $value, $sqlLogical);
+            }
+
+            return $this;
+        }
+
+        if (is_array($value)) {
+            return $this->in($fieldName, $value, $sqlLogical);
+        }
+
+        if ($value instanceof Model) {
+            $value = $value->getPk();
+            $fieldName .= '__fk';
+        }
+
         /** @var Model $modelClass */
         $modelClass = $this->getModelClass();
 
         return $this->where(
-            $sql_logical,
-            $modelClass::getFieldName($fieldName),
-            Query::SQL_COMPARSION_OPERATOR_NOT_EQUAL,
-            $value
-        );
-    }
-
-    public function pk($value, $sql_logical = Query::SQL_LOGICAL_AND)
-    {
-        return $this->eq('/pk', $value, $sql_logical);
-    }
-
-    public function eq($fieldName, $value, $sql_logical = Query::SQL_LOGICAL_AND)
-    {
-        /** @var Model $modelClass */
-        $modelClass = $this->getModelClass();
-
-        return $this->where(
-            $sql_logical,
+            $sqlLogical,
             $modelClass::getFieldName($fieldName),
             Query::SQL_COMPARSION_OPERATOR_EQUAL,
             $value
         );
     }
 
-    public function in($fieldName, array $value, $sql_logical = Query::SQL_LOGICAL_AND)
+    /**
+     * Set in query part where expression 'in (?)'
+     *
+     * @param $fieldName
+     * @param array $value
+     * @param string $sqlLogical
+     * @return $this
+     */
+    public function in($fieldName, array $value, $sqlLogical = Query::SQL_LOGICAL_AND)
     {
         if (empty($value)) {
             return $this;
         }
 
         if (count($value) == 1) {
-            return $this->eq($fieldName, reset($value), $sql_logical);
+            return $this->eq($fieldName, reset($value), $sqlLogical);
         }
 
         /** @var Model $modelClass */
         $modelClass = $this->getModelClass();
 
         return $this->where(
-            $sql_logical,
+            $sqlLogical,
             $modelClass::getFieldName($fieldName),
             Query::SQL_COMPARSION_KEYWORD_IN,
             $value
         );
     }
 
-    public function limit($limit, $offset = null)
+    /**
+     * Set in query part where expression '>= ?'
+     *
+     * @param $fieldName
+     * @param $value
+     * @param string $sqlLogical
+     * @return $this
+     */
+    public function ge($fieldName, $value, $sqlLogical = Query::SQL_LOGICAL_AND)
     {
-        $this->_limit = array($limit, $offset);
-        return $this;
+        /** @var Model $modelClass */
+        $modelClass = $this->getModelClass();
+
+        return $this->where(
+            $sqlLogical,
+            $modelClass::getFieldName($fieldName),
+            Query::SQL_COMPARSION_OPERATOR_GREATER_OR_EQUAL,
+            $value
+        );
     }
 
+    /**
+     * Set in query part where expression '<= ?'
+     *
+     * @param $fieldName
+     * @param $value
+     * @param string $sqlLogical
+     * @return $this
+     */
+    public function le($fieldName, $value, $sqlLogical = Query::SQL_LOGICAL_AND)
+    {
+        /** @var Model $modelClass */
+        $modelClass = $this->getModelClass();
+
+        return $this->where(
+            $sqlLogical,
+            $modelClass::getFieldName($fieldName),
+            Query::SQL_COMPARSION_OPERATOR_LESS_OR_EQUAL,
+            $value
+        );
+    }
+
+    /**
+     * Set in query part where expression '> ?'
+     *
+     * @param $fieldName
+     * @param $value
+     * @param string $sqlLogical
+     * @return $this
+     */
+    public function gt($fieldName, $value, $sqlLogical = Query::SQL_LOGICAL_AND)
+    {
+        /** @var Model $modelClass */
+        $modelClass = $this->getModelClass();
+
+        return $this->where(
+            $sqlLogical,
+            $modelClass::getFieldName($fieldName),
+            Query::SQL_COMPARSION_OPERATOR_GREATER,
+            $value
+        );
+    }
+
+    /**
+     * Set in query part where expression '< ?'
+     *
+     * @param $fieldName
+     * @param $value
+     * @param string $sqlLogical
+     * @return $this
+     */
+    public function lt($fieldName, $value, $sqlLogical = Query::SQL_LOGICAL_AND)
+    {
+        /** @var Model $modelClass */
+        $modelClass = $this->getModelClass();
+
+        return $this->where(
+            $sqlLogical,
+            $modelClass::getFieldName($fieldName),
+            Query::SQL_COMPARSION_OPERATOR_LESS,
+            $value
+        );
+    }
+
+    /**
+     * Set in query part where expression '= ""'
+     *
+     * @param $fieldName
+     * @param string $sqlLogical
+     * @return $this
+     */
+    public function isEmpty($fieldName, $sqlLogical = Query::SQL_LOGICAL_AND)
+    {
+        return $this->eq($fieldName, '', $sqlLogical);
+    }
+
+    /**
+     * Set in query part where expression '<> ""'
+     *
+     * @param $fieldName
+     * @param string $sqlLogical
+     * @return $this
+     */
+    public function notEmpty($fieldName, $sqlLogical = Query::SQL_LOGICAL_AND)
+    {
+        return $this->ne($fieldName, '', $sqlLogical);
+    }
+
+    /**
+     * Set in query part where expression '<> ?'
+     *
+     * @param $fieldName
+     * @param $value
+     * @param string $sqlLogical
+     * @return $this
+     */
+    public function ne($fieldName, $value, $sqlLogical = Query::SQL_LOGICAL_AND)
+    {
+        /** @var Model $modelClass */
+        $modelClass = $this->getModelClass();
+
+        return $this->where(
+            $sqlLogical,
+            $modelClass::getFieldName($fieldName),
+            Query::SQL_COMPARSION_OPERATOR_NOT_EQUAL,
+            $value
+        );
+    }
+
+    /**
+     * Set in query part where expression 'not in (?)'
+     *
+     * @param $fieldName
+     * @param array $value
+     * @param string $sqlLogical
+     * @return $this
+     */
+    public function notIn($fieldName, array $value, $sqlLogical = Query::SQL_LOGICAL_AND)
+    {
+        if (empty($value)) {
+            return $this;
+        }
+
+        if (count($value) == 1) {
+            return $this->eq($fieldName, reset($value), $sqlLogical);
+        }
+
+        /** @var Model $modelClass */
+        $modelClass = $this->getModelClass();
+
+        return $this->where(
+            $sqlLogical,
+            $modelClass::getFieldName($fieldName),
+            Query::SQL_COMPARSION_KEYWORD_NOT_IN,
+            $value
+        );
+    }
+
+    /**
+     * Set in query part where expression '== ?' is boolean true(1)
+     *
+     * @param $fieldName
+     * @param string $sqlLogical
+     * @return $this
+     */
+    public function is($fieldName, $sqlLogical = Query::SQL_LOGICAL_AND)
+    {
+        return $this->eq($fieldName, 1, $sqlLogical);
+    }
+
+    /**
+     * Set in query part where expression '== ?' is boolean false(0)
+     *
+     * @param $fieldName
+     * @param string $sqlLogical
+     * @return $this
+     */
+    public function not($fieldName, $sqlLogical = Query::SQL_LOGICAL_AND)
+    {
+        return $this->eq($fieldName, 0, $sqlLogical);
+    }
+
+    /**
+     * Set in query part where expression 'like ?'
+     *
+     * @param $fieldName
+     * @param $value
+     * @param string $sqlLogical
+     * @return $this
+     */
+    public function like($fieldName, $value, $sqlLogical = Query::SQL_LOGICAL_AND)
+    {
+        /** @var Model $modelClass */
+        $modelClass = $this->getModelClass();
+
+        return $this->where(
+            $sqlLogical,
+            $modelClass::getFieldName($fieldName),
+            Query::SQL_COMPARSION_KEYWORD_LIKE,
+            $value
+        );
+    }
+
+    /**
+     * Set in query part where expression 'rlike ?'
+     *
+     * @param $fieldName
+     * @param $value
+     * @param string $sqlLogical
+     * @return $this
+     */
+    public function rlike($fieldName, $value, $sqlLogical = Query::SQL_LOGICAL_AND)
+    {
+        /** @var Model $modelClass */
+        $modelClass = $this->getModelClass();
+        $modelFields = $modelClass::getMapping()->getFieldNames();
+        $fieldValue = $modelClass::getFieldName($value);
+
+        /** check ability use pattern from field in base */
+        return array_key_exists($fieldValue, $modelFields)
+            ? $this->where($sqlLogical, $fieldValue, Query::SQL_COMPARSION_KEYWORD_RLIKE_REVERSE, $fieldName)
+            : $this->where($sqlLogical, $modelClass::getFieldName($fieldName), Query::SQL_COMPARSION_KEYWORD_RLIKE, $value);
+    }
+
+    /**
+     * Set inner join query part
+     *
+     * @param $modelClass
+     * @return $this
+     */
     public function inner($modelClass)
     {
-        return $this->join(Query::INNER_JOIN, $modelClass);
+        return $this->join(Query::SQL_CLAUSE_INNER_JOIN, $modelClass);
     }
 
+    /**
+     * Set  *join query part
+     *
+     * @param $joinType
+     * @param $modelClass
+     * @param null $tableAlias
+     * @param null $condition
+     * @return $this
+     * @throws Exception
+     */
     private function join($joinType, $modelClass, $tableAlias = null, $condition = null)
     {
         if ($this->_result !== null) {
@@ -303,25 +577,21 @@ class Query
         }
 
         if (!$tableAlias) {
-            $tableAlias = $modelClass::getModelName();
+            $tableAlias = Object::getName($modelClass);
         }
 
-        $currentJoin = array(
+        $currentJoin = [
             'type' => $joinType,
             'class' => $modelClass,
             'alias' => $tableAlias
-        );
+        ];
 
         if (!$condition) {
-            $modelColumnNames = $modelClass::getScheme()->getColumnNames();
-            $modelName = $modelClass::getModelName();
+            $modelName = Object::getName($modelClass);
+            $modelMappingFieldNames = $modelClass::getMapping()->getFieldNames();
+            $modelMappingFieldNamesOnly = array_keys($modelMappingFieldNames);
 
-            $joins = array(
-                array(
-                    'class' => $this->getModelClass(),
-                    'alias' => $this->getTableAlias()
-                ),
-            );
+            $joins = [['class' => $this->getModelClass(), 'alias' => $this->getTableAlias()]];
 
             if (!empty($this->getJoin())) {
                 $joins = array_merge($joins, $this->getJoin());
@@ -330,37 +600,49 @@ class Query
             $joins[] = $currentJoin;
 
             foreach ($joins as $join) {
+                /** @var Model $joinModelClass */
                 $joinModelClass = $join['class'];
                 $joinTableAlias = $join['alias'];
-                $joinModelName = $joinModelClass::getModelName();
 
-                if (in_array(strtolower($joinModelName . '__fk'), $modelColumnNames)) {
-                    $condition = $tableAlias . '.' . strtolower($joinModelName) . '__fk = ' .
-                        $joinTableAlias . '.' . strtolower($joinModelName) . '_pk';
+                $joinModelMappingFieldNames = $joinModelClass::getMapping()->getFieldNames();
+                $joinModelMappingFieldNamesOnly = array_keys($joinModelMappingFieldNames);
+
+                $joinModelName = Object::getName($joinModelClass);
+
+                $joinModelNameFk = strtolower($joinModelName . '__fk');
+                $joinModelNamePk = strtolower($joinModelName) . '_pk';
+
+                if (in_array($joinModelNameFk, $modelMappingFieldNamesOnly)) {
+                    $condition = $tableAlias . '.' . $modelMappingFieldNames[$joinModelNameFk] . ' = ' .
+                        $joinTableAlias . '.' . $joinModelMappingFieldNames[$joinModelNamePk];
                     break;
                 }
 
-                $joinModelColumnNames = $joinModelClass::getScheme()->getColumnNames();
-                if (in_array(strtolower($modelName . '__fk'), $joinModelColumnNames)) {
-                    $condition = $tableAlias . '.' . strtolower($modelName) . '_pk = ' .
-                        $joinTableAlias . '.' . strtolower($modelName . '__fk');
+                $modelNameFk = strtolower($modelName . '__fk');
+                $modelNamePk = strtolower($modelName) . '_pk';
+
+                if (in_array($modelNameFk, $joinModelMappingFieldNamesOnly)) {
+                    $condition = $tableAlias . '.' . $modelMappingFieldNames[$modelNamePk] . ' = ' .
+                        $joinTableAlias . '.' . $joinModelMappingFieldNames[$modelNameFk];
                     break;
                 }
             }
 
             if (!$condition) {
-                throw new Exception('Could not defined condition for join part of sql query');
+                throw new Exception('Could not defined condition for join part of sql query', $this->_parts);
             }
         }
 
         $currentJoin['on'] = $condition;
 
-        $this->_join[] = $currentJoin;
+        $this->_parts[Query::SQL_CLAUSE_KEYWORD_JOIN][] = $currentJoin;
 
         return $this;
     }
 
     /**
+     * Return alias for table of model class of this query
+     *
      * @return string
      */
     public function getTableAlias()
@@ -369,33 +651,55 @@ class Query
     }
 
     /**
+     * Return join parts of this query
+     *
      * @return array
      */
     public function getJoin()
     {
-        return $this->_join;
-    }
-
-    public function left($modelClass)
-    {
-        return $this->join(Query::LEFT_JOIN, $modelClass);
+        return isset($this->_parts[Query::SQL_CLAUSE_KEYWORD_JOIN]) ? $this->_parts[Query::SQL_CLAUSE_KEYWORD_JOIN] : [];
     }
 
     /**
+     * Set inner join query part
+     *
+     * @param $modelClass
+     * @return $this
+     */
+    public function left($modelClass)
+    {
+        return $this->join(Query::SQL_CLAUSE_LEFT_JOIN, $modelClass);
+    }
+
+    /**
+     * Set data for values query part of insert
+     *
      * @param array $values
      * @return Query
      */
     public function values(array $values)
     {
+        if (!isset($this->_parts[Query::SQL_CLAUSE_VALUES])) {
+            $this->_parts[Query::SQL_CLAUSE_VALUES] = [];
+        }
+
         if (is_array(reset($values))) {
-            $this->_values += $values;
+            $this->_parts[Query::SQL_CLAUSE_VALUES] += $values;
         } else {
-            $this->_values[] = $values;
+            $this->_parts[Query::SQL_CLAUSE_VALUES][] = $values;
         }
 
         return $this;
     }
 
+    /**
+     * Set data for set query part of update
+     *
+     * @param $key
+     * @param null $value
+     * @return $this
+     * @throws Exception
+     */
     public function set($key, $value = null)
     {
         if (is_array($key)) {
@@ -410,80 +714,253 @@ class Query
             throw new Exception('Имя поля не может быть пустым');
         }
 
-        $this->_set[$key] = $value;
+        $this->_parts[Query::SQL_CLAUSE_SET][$key] = $value;
 
         return $this;
     }
 
     /**
+     * Get data of query part select
+     *
      * @return array
      */
     public function getSelect()
     {
-        return $this->_select;
+        return isset($this->_parts[Query::SQL_STATEMENT_SELECT]) ? $this->_parts[Query::SQL_STATEMENT_SELECT] : [];
     }
 
     /**
+     * Get data of query part where
+     *
      * @return array
      */
     public function getWhere()
     {
-        return $this->_where;
+        return isset($this->_parts[Query::SQL_CLAUSE_WHERE]) ? $this->_parts[Query::SQL_CLAUSE_WHERE] : [];
     }
 
     /**
-     * @return array
-     */
-    public function getLimit()
-    {
-        return $this->_limit;
-    }
-
-    /**
+     * Get data of query part values
+     *
      * @return array
      */
     public function getValues()
     {
-        return $this->_values;
+        return $this->_parts[Query::SQL_CLAUSE_VALUES];
     }
 
     /**
+     * Get data of query part set
+     *
      * @return array
      */
     public function getSet()
     {
-        return $this->_set;
+        return $this->_parts[Query::SQL_CLAUSE_SET];
     }
 
+    /**
+     * Casts query to string
+     *
+     * @return string
+     */
     public function __toString()
     {
-        return print_r($this->getResult(), true);
+        return print_r($this->translate(), true);
     }
 
-    public function getResult($dataSourceName = 'Mysqli')
+    /**
+     * Get translated query and binds values
+     *
+     * @param string $dataSourceName
+     * @return array
+     */
+    public function translate($dataSourceName = 'Mysqli')
     {
         if ($this->_result !== null) {
             return $this->_result;
         }
 
-        $this->_result = Query_Translator::get('\ice\query\translator\\' . $dataSourceName)->translate($this);
+        $statementType = $this->getStatementType();
+        $queryTranslator = Query_Translator::getInstance('\ice\query\translator\\' . $dataSourceName);
+
+        if ($statementType != strtolower(Query::SQL_STATEMENT_SELECT)) {
+            return $queryTranslator->translate($this);
+        }
+
+        $queryCacheDataProvider = Data_Provider::getInstance(Ice::getEnvironment()->get('dataProviderKeys/' . __CLASS__));
+        $queryHash = md5(Json::encode($this->getParts()));
+        $translateResultJson = $queryCacheDataProvider->get($queryHash);
+
+        if (!empty($translateResultJson)) {
+            return $translateResultJson;
+        }
+
+        $this->_result = $queryTranslator->translate($this);
+        $queryCacheDataProvider->set($queryHash, $this->_result, 0);
 
         return $this->_result;
     }
 
-    public function count()
+    /**
+     * Get statment type of current query (SELECT, INSERT, UPDATE, DELETE, SHOW, CREATE_TABLE etc.)
+     *
+     * @return string
+     */
+    public function getStatementType()
     {
-        $this->_selectCount = true;
+        return $this->_statementType;
+    }
+
+    /**
+     * Return all query parts
+     *
+     * @return array
+     */
+    public function getParts()
+    {
+        return $this->_parts;
+    }
+
+    /**
+     * Set flag of get count rows
+     *
+     * @param $fieldName
+     * @return $this
+     */
+    public function count($fieldName = null)
+    {
+        if (!$fieldName) {
+            /** @var Model $modelClass */
+            $modelClass = $this->getModelClass();
+            $fieldName = $modelClass::getPkName();
+        }
+
+        $this->_parts[Query::SQL_FUNCTION_COUNT] = $fieldName;
+        return $this;
+    }
+
+    public function calcFoundRows()
+    {
+        $this->_parts[Query::SQL_CALC_FOUND_ROWS] = true;
         return $this;
     }
 
     /**
+     * Check flag is select count
+     *
      * @return boolean
      */
-    public function isSelectCount()
+    public function getSelectCount()
     {
-        return $this->_selectCount;
+        return isset($this->_parts[Query::SQL_FUNCTION_COUNT]) ? $this->_parts[Query::SQL_FUNCTION_COUNT] : null;
     }
 
+    /**
+     * Ascending ordering
+     *
+     * @param $fieldName
+     * @return $this
+     */
+    public function asc($fieldName)
+    {
+        return $this->order($fieldName, 'ASC');
+    }
 
+    /**
+     * Ordering
+     *
+     * @param $fieldName
+     * @param $isAscending
+     * @return $this
+     */
+    private function order($fieldName, $isAscending)
+    {
+        if (is_array($fieldName)) {
+            foreach ($fieldName as $name) {
+                $this->order($name, $isAscending);
+            }
+
+            return $this;
+        }
+
+        /** @var Model $modelClass */
+        $modelClass = $this->getModelClass();
+
+        $this->_parts[Query::SQL_CLAUSE_ORDER][$modelClass::getFieldName($fieldName)] = $isAscending;
+
+        return $this;
+    }
+
+    /**
+     * Descending ordering
+     *
+     * @param $fieldName
+     * @return $this
+     */
+    public function desc($fieldName)
+    {
+        return $this->order($fieldName, 'DESC');
+    }
+
+    /**
+     * Get data of query part order by
+     *
+     * @return array
+     */
+    public function getOrder()
+    {
+        return isset($this->_parts[Query::SQL_CLAUSE_ORDER]) ? $this->_parts[Query::SQL_CLAUSE_ORDER] : [];
+    }
+
+    public function getHashParts()
+    {
+        return crc32(String::serialize($this->getParts()));
+    }
+
+    public function getHashBinds()
+    {
+        return crc32(String::serialize($this->getBinds()));
+    }
+
+    public function getBinds()
+    {
+        return []; // todo: implements
+    }
+
+    public function isCalcFoundRows()
+    {
+        return isset($this->_parts[Query::SQL_CALC_FOUND_ROWS]) &&
+        $this->_parts[Query::SQL_CALC_FOUND_ROWS] === true &&
+        !empty($this->getLimit());
+    }
+
+    /**
+     * Get data of query part limit
+     *
+     * @return array
+     */
+    public function getLimit()
+    {
+        return isset($this->_parts[Query::SQL_CLAUSE_LIMIT]) ? $this->_parts[Query::SQL_CLAUSE_LIMIT] : [];
+    }
+
+    public function setPaginator($page = 1, $limit = 1000)
+    {
+        $this->limit(1000, ($page - 1) * $limit);
+        return $this;
+    }
+
+    /**
+     * Set query part limit
+     *
+     * @param $limit
+     * @param int|null $offset
+     * @return $this
+     */
+    public function limit($limit, $offset = 0)
+    {
+        $this->_parts[Query::SQL_CLAUSE_LIMIT] = [$limit, $offset];
+        return $this;
+    }
 }

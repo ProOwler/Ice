@@ -1,39 +1,39 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 21.12.13
- * Time: 2:20
- */
-
 namespace ice\data\provider;
 
+use ice\core\Config;
 use ice\core\Data_Provider;
-use ice\core\helper\Request;
+use ice\core\Request;
+use ice\core\Route;
 use ice\Exception;
 use ice\Ice;
-use ice\model\ice\Route;
 
 class Router extends Data_Provider
 {
+    public static $connections = [];
+
     public static function getDefaultKey()
     {
-        return 'Router:default/' . Request::uri();
+        return 'Router:route/' . Request::uri();
     }
 
     public function get($key = null)
     {
         $url = $this->getScheme();
 
-        $cacheDataProvider = Data_Provider::getInstance(Ice::getConfig()->getParam('routerDataProviderKey') . $url);
+        $dataProvider = Data_Provider::getInstance(Ice::getEnvironment()->get('dataProviderKeys/' . Route::getClass() . $url));
 
         /** @var Route $_route */
-        $_route = $cacheDataProvider->get($url);
-
+        $_route = $dataProvider->get($url);
+        $_route = null;
         if (!$_route) {
-            foreach ($this->getConnection() as $route) {
-                $pattern = '#^' . $route->get('route') . '$#';
-                foreach ((array)$route->get('patterns') as $var => $routeData) {
+            foreach ($this->getConnection() as $routeConfig) {
+                $route = $routeConfig->gets();
+                $pattern = '#^' . $route['route'] . '$#';
+                if (empty($route['patterns'])) {
+                    $route['patterns'] = [];
+                }
+                foreach ($route['patterns'] as $var => $routeData) {
                     $replace = $routeData['pattern'];
                     $var = '{$' . $var . '}';
                     if (!empty($routeData['optional'])) {
@@ -42,51 +42,66 @@ class Router extends Data_Provider
                     $pattern = str_replace($var, $replace, $pattern);
                 }
 
-//            fb($pattern . ' ' . preg_match($pattern, $url));
+//                fb($pattern . ' ' . (int)preg_match($pattern, $url));
+//                fb($route);
 
                 if (preg_match($pattern, $url)) {
-                    $route->setData('pattern', $pattern);
+                    if (empty($route['params'])) {
+                        $route['params'] = [];
+                    }
+                    $route['params']['pattern'] = $pattern;
                     $_route = $route;
+                    unset($route);
                     break;
                 }
             }
         }
 
         if (!$_route) {
-            $_route = Route::create(array());
+            return null;
         }
 
-        if ($pattern = $_route->getData('pattern')) {
-            $baseMatches = array();
+        $baseMatches = [];
 
-            preg_match_all($pattern, $url, $baseMatches);
+        preg_match_all($_route['params']['pattern'], $url, $baseMatches);
 
-            $params = array('pattern' => $pattern);
+        if (!empty($baseMatches[0][0]) && !empty($_route['patterns'])) {
+            $keys = array_keys($_route['patterns']);
 
-            if (!empty($baseMatches[0][0])) {
-                $keys = array_keys((array)$_route->get('patterns'));
-
-                foreach ($baseMatches as $i => $data) {
-                    if (!$i) {
-                        continue;
-                    }
-                    if (!empty($data[0])) {
-                        $params[$keys[$i - 1]] = $data[0];
-                    } else {
-                        $part = $_route->get('patterns')[$keys[$i - 1]];
-                        if (isset($part['default'])) {
-                            $params[$keys[$i - 1]] = $part['default'];
-                        }
+            foreach ($baseMatches as $i => $data) {
+                if (!$i) {
+                    continue;
+                }
+                if (!empty($data[0])) {
+                    $_route['params'][$keys[$i - 1]] = $data[0];
+                } else {
+                    $part = $_route['patterns'][$keys[$i - 1]];
+                    if (isset($part['default'])) {
+                        $_route['params'][$keys[$i - 1]] = $part['default'];
                     }
                 }
             }
-
-            $_route->set('params', $params);
-
-            $cacheDataProvider->set('url', $_route);
         }
 
-        return $key ? $_route->getRow()[$key] : array('route' => $_route->getRow());
+        unset($_route['patterns']);
+
+        if (empty($_route['layout'])) {
+            $_route['layout']['action'] = Ice::getConfig()->get('defaultLayoutAction');
+        }
+
+        $dataProvider->set('url', $_route);
+
+        return $key ? $_route[$key] : $_route;
+    }
+
+    /**
+     * Get instance connection of data provider
+     * @throws Exception
+     * @return Config[]
+     */
+    public function getConnection()
+    {
+        return parent::getConnection();
     }
 
     public function set($key, $value, $ttl = 3600)
@@ -109,14 +124,19 @@ class Router extends Data_Provider
         throw new Exception('Not implemented!');
     }
 
+    public function flushAll()
+    {
+        throw new Exception('Implement flushAll() method.');
+    }
+
     /**
      * @param $connection
      * @return boolean
      */
     protected function connect(&$connection)
     {
-        $connection = Route::getCollection();
-        return (bool)$connection->getCount();
+        $connection = Route::getConfig();
+        return (bool)$connection;
     }
 
     /**
@@ -128,19 +148,6 @@ class Router extends Data_Provider
         $connection = null;
 
         return true;
-    }
-
-    /**
-     * @return Route[]
-     */
-    public function getConnection()
-    {
-        return parent::getConnection();
-    }
-
-    public function flushAll()
-    {
-        throw new Exception('Implement flushAll() method.');
     }
 
     /**

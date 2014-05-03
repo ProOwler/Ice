@@ -1,11 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 30.12.13
- * Time: 23:52
- */
-
 namespace ice\data\source;
 
 use ice\core\Data;
@@ -22,25 +15,39 @@ class Defined extends Data_Source
      */
     public function select(Query $query)
     {
-        $rows = $this->getConnection();
-
         /** @var Model $modelClass */
         $modelClass = $query->getModelClass();
+        $rows = $this->getConnection($modelClass);
 
         $pkName = $modelClass::getPkName();
 
+        $fieldNames = $modelClass::getMapping()->getFieldNames();
+        $flippedFieldNames = array_flip($fieldNames);
+
+        $definedRows = [];
         foreach ($rows as $pk => &$row) {
-            $row[$pkName] = $pk;
+            $definedRow = [];
+            foreach ($row as $fieldName => $fieldValue) {
+                if (isset($flippedFieldNames[$fieldName])) { // Пока такой костыль.. надо думать //dp
+                    $definedRow[$flippedFieldNames[$fieldName]] = $fieldValue;
+                } else {
+                    $definedRow[$fieldName] = $fieldValue;
+                }
+            }
+            $definedRow[$fieldNames[$pkName]] = $pk;
+            $definedRows[] = $definedRow;
         }
+        $rows = & $definedRows;
 
         $filterFunction = function ($where) {
             return function ($row) use ($where) {
+
                 foreach ($where as list($part, $bind)) {
                     $whereQuery = null;
 
                     switch ($part[Query::CLAUSE_WHERE_COMPARSION_OPERATOR]) {
                         case Query::SQL_COMPARSION_OPERATOR_EQUAL:
-                            if ($row[$part[Query::CLAUSE_WHERE_FIELD_NAME]] != $bind) {
+                            if (!isset($row[$part[Query::CLAUSE_WHERE_FIELD_NAME]]) || $row[$part[Query::CLAUSE_WHERE_FIELD_NAME]] != $bind) {
                                 return false;
                             }
                             break;
@@ -75,12 +82,12 @@ class Defined extends Data_Source
 
         $rows = array_filter($rows, $filterFunction($query->getWhere()));
 
-        return array(
+        return [
             Data::RESULT_MODEL_CLASS => $modelClass,
             Data::RESULT_ROWS => $rows,
-            Data::RESULT_SQL => 'todo: need implements',
+            Data::RESULT_SQL => 'definedHash:' . $query->getHashParts(),
             Data::NUM_ROWS => count($rows)
-        );
+        ];
     }
 
     /**

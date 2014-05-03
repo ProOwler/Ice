@@ -1,22 +1,17 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 30.12.13
- * Time: 23:35
- */
-
 namespace ice\core;
 
 use ice\Exception;
+use ice\helper\Json;
+use ice\helper\Object;
 use ice\Ice;
 
 abstract class Data_Source
 {
     const CONFIG_CACHE_DATA_PROVIDER = 'cacheDataProvider';
-    const DEFAULT_CACHE_DATA_PROVIDER = 'Redis:data_source/';
+    const DEFAULT_CACHE_DATA_PROVIDER = 'File:cache/data_source';
 
-    private static $_dataSources = array();
+    private static $_dataSources = [];
 
     private $_sourceDataProvider = null;
     private $_cacheDataProvider = null;
@@ -48,7 +43,6 @@ abstract class Data_Source
      */
     abstract public function delete(Query $query);
 
-
     private function __construct($dataSourceKey)
     {
         $this->_dataSourceKey = $dataSourceKey;
@@ -57,17 +51,35 @@ abstract class Data_Source
     /**
      * @param Query $query
      * @param bool $isUseCache
+     * @throws Exception
      * @return Data
      */
-    public function execute(Query $query, $isUseCache = true)
+    public function execute(Query &$query, $isUseCache = true)
     {
         $statementType = $query->getStatementType();
-
-        if ($statementType != 'select' || !$isUseCache) {
+        if ($statementType == strtolower(Query::SQL_STATEMENT_SELECT) && !$isUseCache) {
+            return new Data($this->$statementType($query));
+        }
+        list($sql, $binds) = $query->translate(Object::getName(get_class($this)));
+        $hash = crc32(Json::encode($sql)) . '/' . crc32(Json::encode($binds));
+        $cacheDataProvider = Data_Provider::getInstance(self::DEFAULT_CACHE_DATA_PROVIDER);
+        if ($statementType == strtolower(Query::SQL_STATEMENT_SELECT)) {
+//            $queryResultJson = $cacheDataProvider->get($hash);
+//            if ($queryResultJson) {
+//                return new Data(Json::decode($queryResultJson));
+//            }
+            $queryResult = $this->$statementType($query);
+            $cacheDataProvider->set($hash, Json::encode($queryResult));
+            return new Data($queryResult);
+        }
+        if (
+            $statementType == strtolower(Query::SQL_STATEMENT_INSERT) ||
+            $statementType == strtolower(Query::SQL_STATEMENT_UPDATE) ||
+            $statementType == strtolower(Query::SQL_STATEMENT_DELETE)) {
             return new Data($this->$statementType($query));
         }
 
-        return new Data($this->$statementType($query));
+        throw new Exception('Unknown data source query statment type "' . $statementType . "");
     }
 
     /**
@@ -87,7 +99,7 @@ abstract class Data_Source
             return $this->_cacheDataProvider;
         }
 
-        $dataProviderKey = $this->getConfig()->getParam(
+        $dataProviderKey = $this->getConfig()->get(
             $this->getDataSourceKey() . '/' . self::CONFIG_CACHE_DATA_PROVIDER
         );
 
@@ -122,35 +134,44 @@ abstract class Data_Source
 
     public static function getDefault()
     {
-        return self::get(Ice::getConfig()->getParam('defaultDataSourceKey'));
+        return self::getInstance(Ice::getEnvironment()->get('dataProviderKeys/' . __CLASS__));
     }
 
     /**
      * @param $dataSourceKey // example: 'Mysqli:production/scheme'
      * @return Data_Source
      */
-    public static function get($dataSourceKey)
+    public static function getInstance($dataSourceKey)
     {
-        $index = strstr($dataSourceKey, '/', true);
-
-        if (isset(self::$_dataSources[$index])) {
-            return self::$_dataSources[$index];
+        if (isset(self::$_dataSources[$dataSourceKey])) {
+            return self::$_dataSources[$dataSourceKey];
         }
 
-        $dataSourceClass = 'Ice\data\source\\' . strstr($dataSourceKey, ':', true);
+        $dataSourceClass = 'ice\data\source\\' . strstr($dataSourceKey, ':', true);
+        self::$_dataSources[$dataSourceKey] = new $dataSourceClass($dataSourceKey);
 
-        self::$_dataSources[$index] = new $dataSourceClass($dataSourceKey);
-
-        return self::$_dataSources[$index];
+        return self::$_dataSources[$dataSourceKey];
     }
 
     public static function getConfig()
     {
-        return Config::get(get_called_class());
+        return Config::getInstance(get_called_class());
     }
 
-    public function getConnection()
+    /**
+     * Get connection instance
+     *
+     * @param string|null $scheme
+     * @return Object
+     */
+    public function getConnection($scheme = null)
     {
+        if ($scheme) {
+            $this->getSourceDataProvider()->setScheme($scheme);
+        }
+
+
+
         return $this->getSourceDataProvider()->getConnection();
     }
 } 

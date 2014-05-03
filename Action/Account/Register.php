@@ -1,23 +1,25 @@
 <?php
 namespace ice\action;
 
+use ice\core\action\Ajax;
 use ice\core\Action;
-use ice\core\action\Ajaxable;
 use ice\core\Action_Context;
 use ice\core\Validator_Exception;
 use ice\model\ice\Account_Type;
 use ice\model\ice\Account_Type_Exception;
 
 /**
- * Created by PhpStorm.
- * User: dp
- * Date: 14.12.13
- * Time: 16:23
+ * Register action class
+ *
+ * Action of registration user
+ *
+ * @package ice\action
+ * @author dp
  */
-class Account_Register extends Action implements Ajaxable
+class Account_Register extends Action implements Ajax
 {
     /**
-     * Запускает Экшин
+     * Run action
      *
      * @param array $input
      * @param Action_Context $context
@@ -47,12 +49,10 @@ class Account_Register extends Action implements Ajaxable
         }
 
         if (!empty($errorMessage)) {
-            return array(
-                'error' => array(
-                    'message' => $errorMessage
-                ),
+            return [
+                'error' => ['message' => $errorMessage],
                 'hasError' => 1
-            );
+            ];
         }
 
         return $input;

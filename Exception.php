@@ -1,10 +1,9 @@
 <?php
-
 namespace ice;
 
 use ErrorException;
 use ice\core\Config;
-use ice\core\helper\Request;
+use ice\core\Request;
 
 /**
  * Class Exception
@@ -18,7 +17,6 @@ class Exception extends ErrorException
 {
     /**
      * Error context data
-     *
      * @var array
      */
     private $errcontext = null;
@@ -28,30 +26,24 @@ class Exception extends ErrorException
      *
      * Simple constructor for fast throws Exception
      *
-     * @param string $errstr
-     *      message of exception
-     * @param array $errcontext
-     *      context data of exception
-     * @param Exception $previous
-     *      previous exception if exists
-     * @param string $errfile
-     *      filename where throw Exception
-     * @param int $errline
-     *      number of line where throws Exception
-     * @param int $errno
-     *      code of error exception
+     * @param string $errstr message of exception
+     * @param array $errcontext context data of exception
+     * @param Exception $previous previous exception if exists
+     * @param string $errfile filename where throw Exception
+     * @param int $errline number of line where throws Exception
+     * @param int $errno code of error exception
      */
-    public function __construct($errstr, $errcontext = array(), $previous = null, $errfile = null, $errline = null, $errno = 0)
+    public function __construct($errstr, $errcontext = [], $previous = null, $errfile = null, $errline = null, $errno = 0)
     {
         $this->errcontext = $errcontext;
 
-        $config = Config::get(__CLASS__);
+//        $config = Config::get(__CLASS__);
+//
+//        $message = $config->get($errstr . '/' . Request::locale(), false);
 
-        $message = $config->getParam($errstr . '/' . Request::locale(), false);
-
-        if (!$message) {
+//        if (!$message) {
             $message = $errstr;
-        }
+//        }
 
         $debug = debug_backtrace();
 

@@ -1,11 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 11.01.14
- * Time: 0:41
- */
-
 namespace ice\view\render;
 
 use ice\core\Config;
@@ -20,37 +13,36 @@ class Smarty extends View_Render
     const VIEW_RENDER_SMARTY_CLASS = 'ice\view\render\Smarty';
     const TEMPLATE_EXTENTION = '.tpl';
 
-    public static $config = array(
-        Data_Provider::KEY => 'Buffer:view_render/smarty'
-    );
+    public static $config = [
+        'dataProviderKey' => 'Registry:view_render/smarty'
+    ];
 
     /** @var \Smarty */
     private $_smarty = null;
 
     public function init()
     {
-        require_once('/usr/local/share/smarty3/Smarty.class.php');
+        require_once $this->getConfig()->get('class');
+
         $this->_smarty = new \Smarty();
 
         Loader::register('\smartyAutoload');
 
-        $templateDirs = array();
+        $templateDirs = [];
 
-        $modulesConfigName = Ice::getConfig()->getConfigName() . ':modules';
-
-        foreach (Ice::getConfig()->getParams('modules') as $module) {
-            $moduleConfig = new Config($module, $modulesConfigName);
-            $templateDirs[] = $moduleConfig->getParam('path') . 'View/Template';
+        foreach (Ice::getModules() as $modulePath) {
+            $templateDirs[] = $modulePath . 'View/Template';
         }
         $this->_smarty->setTemplateDir($templateDirs);
 
-        $this->_smarty->setCompileDir(dirname(Ice::getEnginePath()) . '/cache/' . Ice::getProject());
+        $this->_smarty->setCompileDir($this->getConfig()->get('templates_c') . Ice::getProject());
+        $this->_smarty->addPluginsDir($this->getConfig()->get('plugins', false));
 //        $this->_smarty->setCacheDir('/web/www.example.com/smarty/cache');
 //        $this->_smarty->setConfigDir('/web/www.example.com/smarty/configs');
         $this->_smarty->debugging = true;
     }
 
-    public function display($template, array $data = array(), $ext)
+    public function display($template, array $data = [], $ext)
     {
         /** @var \Smarty_Internal_Template $smartyTemplate */
         $smartyTemplate = $this->_smarty->createTemplate($template . $ext);
@@ -62,7 +54,7 @@ class Smarty extends View_Render
         $smartyTemplate->display();
     }
 
-    public function fetch($template, array $data = array(), $ext)
+    public function fetch($template, array $data = [], $ext)
     {
         $templateName = $template . $ext;
 
@@ -79,7 +71,7 @@ class Smarty extends View_Render
             $view = $smartyTemplate->fetch();
         } catch (\Exception $e) {
             ob_start();
-            Logger::outputErrors($e);
+            Logger::getMessage($e);
             $view = ob_get_clean();
         }
 

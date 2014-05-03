@@ -1,11 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 28.12.13
- * Time: 17:53
- */
-
 namespace ice\core\data\provider\adapter;
 
 use APCIterator;
@@ -234,11 +227,11 @@ class Apc
     /**
      * Returns a binary dump of the given files and user variables from the APC cache
      *
-     * A NULL for files or user_vars signals a dump of every entry, while array() will dump nothing.
+     * A NULL for files or user_vars signals a dump of every entry, while [] will dump nothing.
      *
      * @link http://php.net/manual/en/function.apc-bin-dump.php
-     * @param string[]|null $files The files. Passing in NULL signals a dump of every entry, while passing in array() will dump nothing.
-     * @param string[]|null $user_vars The user vars. Passing in NULL signals a dump of every entry, while passing in array() will dump nothing.
+     * @param string[]|null $files The files. Passing in NULL signals a dump of every entry, while passing in [] will dump nothing.
+     * @param string[]|null $user_vars The user vars. Passing in NULL signals a dump of every entry, while passing in [] will dump nothing.
      * @return string|bool|null Returns a binary dump of the given files and user variables from the APC cache, FALSE if APC is not enabled, or NULL if an unknown error is encountered.
      */
     function binDump($files = null, $user_vars = null)
