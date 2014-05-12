@@ -8,6 +8,8 @@ abstract class View_Render
 {
     public static $config = [];
 
+    public static $templates = [];
+
     private $_config = null;
 
     private function __construct(array $config = [])
@@ -15,11 +17,10 @@ abstract class View_Render
         $this->_config = Config::getInstance($this->getClass(), array_merge(self::$config, $config));
     }
 
-    abstract public function init();
-
-    abstract public function display($template, array $data = [], $ext);
-
-    abstract public function fetch($template, array $data = [], $ext);
+    public function getClass()
+    {
+        return get_class($this);
+    }
 
     /**
      * @return View_Render
@@ -53,13 +54,14 @@ abstract class View_Render
         return $viewRender;
     }
 
+    abstract public function init();
+
+    abstract public function display($template, array $data = [], $ext);
+
+    abstract public function fetch($template, array $data = [], $ext);
+
     public function getConfig()
     {
         return $this->_config;
-    }
-
-    public function getClass()
-    {
-        return get_class($this);
     }
 }

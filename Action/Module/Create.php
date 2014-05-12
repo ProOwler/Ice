@@ -14,7 +14,8 @@ use ice\core\Action_Context;
 use ice\helper\Dir;
 use ice\Ice;
 
-class Module_Create extends Action implements Cli {
+class Module_Create extends Action implements Cli
+{
 
     protected $inputValidators = [
         'name' => 'Ice:Not_Null'

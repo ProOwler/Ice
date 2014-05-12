@@ -2,10 +2,9 @@
 namespace ice\model\ice;
 
 use ice\core\Data_Provider;
-use ice\core\Data_Source;
-use ice\helper\Date;
-use ice\core\Request;
 use ice\core\Model;
+use ice\core\Request;
+use ice\helper\Date;
 
 class Session extends Model
 {
@@ -15,6 +14,35 @@ class Session extends Model
      * var Session
      */
     private static $_session = null;
+
+    /**
+     * Очистить сессию
+     */
+    public static function clearSession()
+    {
+        $session = self::getCurrent();
+        $session->delete();
+        self::$_session = null;
+    }
+
+//    /**
+//     * @param Account $account
+//     */
+//    public static function switchAccount($account)
+//    {
+//        $user = $account->getUser();
+//
+//        if ($user) {
+//            Session::getCurrent()->update(
+//                [
+//                    'account__fk' => $account->getPk(),
+//                    'last_active' => Helper_Date::toUnix(),
+//                    'auth_date' => Helper_Date::toUnix(),
+//                    '_use_pk' => $user->getPk()
+//                ]
+//            );
+//        }
+//    }
 
     /**
      * Получаем текущую сессию
@@ -47,35 +75,6 @@ class Session extends Model
                 'user__fk' => User::getGuest()->getPk()
             ]
         )->insert();
-    }
-
-//    /**
-//     * @param Account $account
-//     */
-//    public static function switchAccount($account)
-//    {
-//        $user = $account->getUser();
-//
-//        if ($user) {
-//            Session::getCurrent()->update(
-//                [
-//                    'account__fk' => $account->getPk(),
-//                    'last_active' => Helper_Date::toUnix(),
-//                    'auth_date' => Helper_Date::toUnix(),
-//                    '_use_pk' => $user->getPk()
-//                ]
-//            );
-//        }
-//    }
-
-    /**
-     * Очистить сессию
-     */
-    public static function clearSession()
-    {
-        $session = self::getCurrent();
-        $session->delete();
-        self::$_session = null;
     }
 
     /**

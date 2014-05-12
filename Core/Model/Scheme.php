@@ -50,13 +50,13 @@ class Model_Scheme
 
     }
 
-    public function getColumns()
-    {
-        return $this->_modelSchemeConfig->gets();
-    }
-
     public function getColumnNames()
     {
         return array_keys($this->getColumns());
+    }
+
+    public function getColumns()
+    {
+        return $this->_modelSchemeConfig->gets();
     }
 }

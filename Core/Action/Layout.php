@@ -14,7 +14,6 @@ use ice\core\Action_Context;
  */
 class Layout extends Action implements View
 {
-
     protected $layout = '';
 
     /**
@@ -39,5 +38,7 @@ class Layout extends Action implements View
         foreach ($input['actions'] as $var => $action) {
             $context->addAction($action, $input, $var);
         }
+
+        return [];
     }
 }

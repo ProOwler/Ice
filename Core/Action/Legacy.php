@@ -4,6 +4,7 @@ namespace ice\core\action;
 use Controller_Manager;
 use ice\core\Action;
 use ice\core\Action_Context;
+use ice\Exception;
 
 /**
  * Legacy action
@@ -25,7 +26,9 @@ class Legacy extends Action
      */
     protected function run(array $input, Action_Context &$context)
     {
+        throw new Exception(get_class($this), $input);
         $controllerAction = explode('/', $input['action']);
+
         unset($input['action']);
 
         $controllerTask = Controller_Manager::call($controllerAction[0], $controllerAction[1], $input);

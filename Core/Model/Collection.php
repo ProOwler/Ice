@@ -3,8 +3,8 @@ namespace ice\core\model;
 
 use ice\core\Data;
 use ice\core\Data_Source;
-use ice\core\Model;
 use ice\core\model\collection\Iterator;
+use ice\core\Model;
 use ice\core\Query;
 use ice\Exception;
 use IteratorAggregate;
@@ -26,6 +26,55 @@ class Collection implements IteratorAggregate
         $this->_modelClass = $modelClass;
     }
 
+    public static function byQuery(Query $query, Data_Source $dataSource = null)
+    {
+        /** @var Model $modelClass */
+        $modelClass = $query->getModelClass();
+
+        if (isset(class_parents($modelClass)[Factory::getClass()])) {
+            $query->select('/delegate_name');
+        }
+
+        if (!$dataSource) {
+            $dataSource = $modelClass::getDataSource();
+        }
+
+        return $query->execute($dataSource)->getCollection();
+    }
+
+    public static function create($modelClass)
+    {
+        return new Collection($modelClass);
+    }
+
+    public function getCount()
+    {
+        return count($this->getData());
+    }
+
+    /**
+     * @return Data
+     */
+    public function getData()
+    {
+        if ($this->_data !== null) {
+            return $this->_data;
+        }
+
+        $this->_data = $this->getQueryBuilder()->execute();
+
+        return $this->_data;
+    }
+
+    /**
+     * @param Data $data
+     * @throws Exception
+     */
+    public function setData(Data $data)
+    {
+        $this->_data = $data;
+    }
+
     public function getQueryBuilder()
     {
         if ($this->_queryBuilder !== null) {
@@ -43,55 +92,6 @@ class Collection implements IteratorAggregate
         return $this->_queryBuilder;
     }
 
-    public static function byQuery(Query $query, Data_Source $dataSource = null)
-    {
-        /** @var Model $modelClass */
-        $modelClass = $query->getModelClass();
-
-        if (isset(class_parents($modelClass)[Factory::getClass()])) {
-            $query->select('/delegate_name');
-        }
-
-        if (!$dataSource) {
-            $dataSource = $modelClass::getDataSource();
-        }
-
-        return $query->execute($dataSource)->getCollection();
-    }
-
-    public function getCount()
-    {
-        return count($this->getData());
-    }
-
-    /**
-     * @param Data $data
-     * @throws Exception
-     */
-    public function setData(Data $data)
-    {
-        $this->_data = $data;
-    }
-
-    /**
-     * @return Data
-     */
-    public function getData()
-    {
-        if ($this->_data !== null) {
-            return $this->_data;
-        }
-
-        $this->_data = $this->getQueryBuilder()->execute();
-
-        return $this->_data;
-    }
-
-    public static function create($modelClass)
-    {
-        return new Collection($modelClass);
-    }
-
     public function first()
     {
         $row = $this->getRow();
@@ -104,6 +104,11 @@ class Collection implements IteratorAggregate
         $modelClass = $this->_modelClass;
 
         return $modelClass::create($row);
+    }
+
+    public function getRow($pk = null)
+    {
+        return $this->getData()->getRow($pk);
     }
 
     /**
@@ -143,25 +148,19 @@ class Collection implements IteratorAggregate
 
         $modelClass = $this->_modelClass;
         $keys = $this->getKeys();
-        $pkName = $modelClass::getPkName();
 
         /** @var Query $query */
         $query = $modelClass::getQueryBuilder('update')->set($updates);
 
         if (count($keys) == 1) {
-            $query->eq($pkName, reset($keys));
+            $query->eq('/pk', reset($keys));
         } else {
-            $query->in($pkName, $keys);
+            $query->in('/pk', $keys);
         }
 
         $this->setData($query->execute($dataSource));
 
         return $this;
-    }
-
-    public function getRow($pk = null)
-    {
-        return $this->getData()->getRow($pk);
     }
 
     public function getKeys()
@@ -203,12 +202,42 @@ class Collection implements IteratorAggregate
         return $modelClass::create($this->getData()->delete($pk));
     }
 
-    public function filter($filterScheme)
+    /**
+     * Filter model collection by filterScheme
+     *
+     *  $filterScheme = [
+     *      ['name', 'Petya', '='],
+     *      ['age', 18, '>'],
+     *      ['surname', 'Iv%', 'like']
+     *  ];
+     *
+     * @code
+     *  ->filter('name', 'Petya')
+     *  ->filter(['age', 18, '>'])
+     *  ->filter([['surname', 'Iv%', 'like']])
+     * @endcode
+     *
+     * @see \ice\helper\Arrays::filter
+     *
+     * @param $fieldScheme
+     * @param null $value
+     * @param string $comparsion
+     * @return Collection
+     */
+    public function filter($fieldScheme, $value = null, $comparsion = '=')
     {
+        if (!is_array($fieldScheme)) {
+            return $this->filter([[$fieldScheme, $value, $comparsion]]);
+        }
+
+        if (!is_array(reset($fieldScheme))) {
+            return $this->filter([$fieldScheme]);
+        }
+
         /** @var Model $modelClass */
         $modelClass = $this->_modelClass;
         $collection = $modelClass::getCollection();
-        $collection->setData($this->getData()->filter($filterScheme));
+        $collection->setData($this->getData()->filter($fieldScheme));
         return $collection;
     }
 }

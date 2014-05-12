@@ -18,6 +18,14 @@ class Apc extends Data_Provider
         return $this->getConnection()->fetch($this->getKey($key));
     }
 
+    /**
+     * @return \ice\core\data\provider\adapter\Apc
+     */
+    public function getConnection()
+    {
+        return parent::getConnection();
+    }
+
     public function set($key, $value, $ttl = 3600)
     {
         return $this->getConnection()->store($this->getKey($key), $value, $ttl);
@@ -36,6 +44,11 @@ class Apc extends Data_Provider
     public function dec($key, $step = 1)
     {
         return $this->getConnection()->dec($this->getKey($key), $step);
+    }
+
+    public function flushAll()
+    {
+        $this->getConnection()->clearCache();
     }
 
     /**
@@ -61,19 +74,6 @@ class Apc extends Data_Provider
     {
         $connection = null;
         return true;
-    }
-
-    /**
-     * @return \ice\core\data\provider\adapter\Apc
-     */
-    public function getConnection()
-    {
-        return parent::getConnection();
-    }
-
-    public function flushAll()
-    {
-        $this->getConnection()->clearCache();
     }
 
     /**

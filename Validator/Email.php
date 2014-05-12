@@ -24,6 +24,6 @@ class Email extends Validator
      */
     public function validate($data, $scheme = null)
     {
-        return (bool) filter_var($data, FILTER_VALIDATE_EMAIL);
+        return (bool)filter_var($data, FILTER_VALIDATE_EMAIL);
     }
 }

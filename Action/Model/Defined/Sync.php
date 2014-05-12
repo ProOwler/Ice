@@ -7,12 +7,12 @@ use ice\core\Action_Context;
 use ice\core\Data_Mapping;
 use ice\core\Data_Source;
 use ice\core\model\Collection;
-use ice\core\model\Defined;
 use ice\core\Model;
+use ice\core\model\Defined;
 use ice\Exception;
 
 /**
- * Class sinchronizate defined models
+ * Class synchronizate defined models
  *
  * @package ice\action
  * @author dp
@@ -61,8 +61,8 @@ class Model_Defined_Sync extends Action implements Cli
 
                 if ($rowCollection->getCount()) {
                     $modelClass::getQueryBuilder('delete')
-                        ->in($modelClass::getPkName(), $rowCollection->getKeys())
-                        ->execute($dataSource)->getSql();
+                        ->in('/pk', $rowCollection->getKeys())
+                        ->execute($dataSource);
                 }
             }
         }

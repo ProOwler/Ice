@@ -134,21 +134,6 @@ class FB
     }
 
     /**
-     * Log object to firebug
-     *
-     * @see http://www.firephp.org/Wiki/Reference/Fb
-     * @param mixed $Object
-     * @return true
-     * @throws Exception
-     */
-    public static function send()
-    {
-        $instance = FirePHP::getInstance(true);
-        $args = func_get_args();
-        return call_user_func_array(array($instance, 'fb'), $args);
-    }
-
-    /**
      * Start a group for following messages
      *
      * Options:
@@ -174,6 +159,21 @@ class FB
     public static function groupEnd()
     {
         return self::send(null, null, FirePHP::GROUP_END);
+    }
+
+    /**
+     * Log object to firebug
+     *
+     * @see http://www.firephp.org/Wiki/Reference/Fb
+     * @param mixed $Object
+     * @return true
+     * @throws Exception
+     */
+    public static function send()
+    {
+        $instance = FirePHP::getInstance(true);
+        $args = func_get_args();
+        return call_user_func_array(array($instance, 'fb'), $args);
     }
 
     /**

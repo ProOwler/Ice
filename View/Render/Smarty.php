@@ -1,10 +1,7 @@
 <?php
 namespace ice\view\render;
 
-use ice\core\Config;
-use ice\core\Data_Provider;
 use ice\core\Loader;
-use ice\core\Logger;
 use ice\core\View_Render;
 use ice\Ice;
 
@@ -67,13 +64,8 @@ class Smarty extends View_Render
 
         $view = null;
 
-        try {
-            $view = $smartyTemplate->fetch();
-        } catch (\Exception $e) {
-            ob_start();
-            Logger::getMessage($e);
-            $view = ob_get_clean();
-        }
+        $view = $smartyTemplate->fetch();
+
 
         return $view;
     }

@@ -6,7 +6,14 @@ use ice\Exception;
 
 class Cli extends Data_Provider
 {
+    const DEFAULT_KEY = 'Cli:prompt/default';
+
     public static $connections = [];
+
+    public static function getDefaultKey()
+    {
+        return self::DEFAULT_KEY;
+    }
 
     public function get($key = null)
     {

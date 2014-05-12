@@ -9,26 +9,6 @@ class Registry extends Data_Provider
 {
     public static $connections = [];
 
-    /**
-     * @param $connection
-     * @return boolean
-     */
-    protected function connect(&$connection)
-    {
-        $connection = new ArrayObject();
-        return true;
-    }
-
-    /**
-     * @param $connection
-     * @return boolean
-     */
-    protected function close(&$connection)
-    {
-        $connection = null;
-        return true;
-    }
-
     public static function getDefaultKey()
     {
         return \ice\core\Registry::DEFAULT_DATA_PROVIDER_KEY;
@@ -49,6 +29,12 @@ class Registry extends Data_Provider
         }
 
         return isset($data[$key]) ? $data[$key] : null;
+    }
+
+    /** @return ArrayObject */
+    public function getConnection()
+    {
+        return parent::getConnection();
     }
 
     public function set($key, $value, $ttl = 3600)
@@ -95,14 +81,28 @@ class Registry extends Data_Provider
      * @param $connection
      * @return boolean
      */
-    protected function switchScheme(&$connection)
+    protected function connect(&$connection)
     {
+        $connection = new ArrayObject();
         return true;
     }
 
-    /** @return ArrayObject */
-    public function getConnection()
+    /**
+     * @param $connection
+     * @return boolean
+     */
+    protected function close(&$connection)
     {
-        return parent::getConnection();
+        $connection = null;
+        return true;
+    }
+
+    /**
+     * @param $connection
+     * @return boolean
+     */
+    protected function switchScheme(&$connection)
+    {
+        return true;
     }
 }

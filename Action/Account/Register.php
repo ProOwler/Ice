@@ -4,7 +4,6 @@ namespace ice\action;
 use ice\core\action\Ajax;
 use ice\core\Action;
 use ice\core\Action_Context;
-use ice\core\Validator_Exception;
 use ice\model\ice\Account_Type;
 use ice\model\ice\Account_Type_Exception;
 
@@ -36,12 +35,14 @@ class Account_Register extends Action implements Ajax
                 throw new Account_Exception('Учетная запись заданного типа "' . $input['accountType'] . '" не может быть получена');
             }
 
-            $accountType->check($input, 'Register');
+            $errors = $accountType->check($input, 'Register');
 
-            $accountType->register($input);
+            if (empty($errors)) {
+                $accountType->register($input);
+            } else {
+                $errorMessage = reset($errors);
+            }
 
-        } catch (Validator_Exception $e) {
-            $errorMessage = $e->getMessage();
         } catch (Account_Exception $e) {
             $errorMessage = $e->getMessage();
         } catch (Account_Type_Exception $e) {

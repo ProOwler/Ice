@@ -19,7 +19,7 @@ class Defined extends Data_Source
         $modelClass = $query->getModelClass();
         $rows = $this->getConnection($modelClass);
 
-        $pkName = $modelClass::getPkName();
+        $pkName = $modelClass::getFieldName('/pk');
 
         $fieldNames = $modelClass::getMapping()->getFieldNames();
         $flippedFieldNames = array_flip($fieldNames);
@@ -41,33 +41,32 @@ class Defined extends Data_Source
 
         $filterFunction = function ($where) {
             return function ($row) use ($where) {
-
-                foreach ($where as list($part, $bind)) {
+                foreach ($where as $part) {
                     $whereQuery = null;
 
-                    switch ($part[Query::CLAUSE_WHERE_COMPARSION_OPERATOR]) {
+                    switch ($part[2]) {
                         case Query::SQL_COMPARSION_OPERATOR_EQUAL:
-                            if (!isset($row[$part[Query::CLAUSE_WHERE_FIELD_NAME]]) || $row[$part[Query::CLAUSE_WHERE_FIELD_NAME]] != $bind) {
+                            if (!isset($row[$part[1]]) || $row[$part[1]] != reset($part[3])) {
                                 return false;
                             }
                             break;
                         case Query::SQL_COMPARSION_OPERATOR_NOT_EQUAL:
-                            if ($row[$part[Query::CLAUSE_WHERE_FIELD_NAME]] == $bind) {
+                            if ($row[$part[1]] == reset($part[3])) {
                                 return false;
                             }
                             break;
                         case Query::SQL_COMPARSION_KEYWORD_IN:
-                            if (!in_array($row[$part[Query::CLAUSE_WHERE_FIELD_NAME]], $bind)) {
+                            if (!in_array($row[$part[1]], $part[3])) {
                                 return false;
                             }
                             break;
                         case Query::SQL_COMPARSION_KEYWORD_IS_NULL:
-                            if ($row[$part[Query::CLAUSE_WHERE_FIELD_NAME]] !== null) {
+                            if ($row[$part[1]] !== null) {
                                 return false;
                             }
                             break;
                         case Query::SQL_COMPARSION_KEYWORD_IS_NOT_NULL:
-                            if ($row[$part[Query::CLAUSE_WHERE_FIELD_NAME]] === null) {
+                            if ($row[$part[1]] === null) {
                                 return false;
                             }
                             break;
@@ -80,12 +79,12 @@ class Defined extends Data_Source
             };
         };
 
-        $rows = array_filter($rows, $filterFunction($query->getWhere()));
+        $rows = array_filter($rows, $filterFunction(\ice\helper\Query::convertWhereForFilter($query)));
 
         return [
             Data::RESULT_MODEL_CLASS => $modelClass,
             Data::RESULT_ROWS => $rows,
-            Data::RESULT_SQL => 'definedHash:' . $query->getHashParts(),
+            Data::QUERY_DUMP => 'definedHash:' . $query->getSqlPartsHash(),
             Data::NUM_ROWS => count($rows)
         ];
     }

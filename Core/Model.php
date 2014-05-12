@@ -1,14 +1,13 @@
 <?php
 namespace ice\core;
 
-use ice\helper\Data_Mapping;
-use ice\helper\Date;
-use ice\helper\Json;
-use ice\helper\Object;
 use ice\core\model\Collection;
 use ice\core\model\Defined;
 use ice\core\model\Factory;
 use ice\Exception;
+use ice\helper\Date;
+use ice\helper\Json;
+use ice\helper\Object;
 
 /**
  * Abstract core Class Model
@@ -18,6 +17,8 @@ use ice\Exception;
  */
 abstract class Model
 {
+    private $_pk = null;
+    private $_pkName = null;
     /** @var array model fields */
     private $_row = [];
     /** @var array extended fields json */
@@ -27,23 +28,38 @@ abstract class Model
     /** @var array extended data of model */
     private $_data = [];
     /** @var array updated fields */
-    private $_updates = [];
+    private $_affected = [];
 
     /**
      * Private constructor. Create model: Model::create()
      *
      * @param array $row
+     * @param null $pk
+     * @throws Exception
      */
-    private function __construct(array $row)
+    private function __construct(array $row, $pk = null)
     {
+        $this->_pk = $pk;
+
         /** @var Model $modelClass */
         $modelClass = self::getClass();
 
         $modelSchemeColumns = $modelClass::getScheme()->getColumns();
         $modelMappingFields = $modelClass::getMapping()->getFieldNames();
 
-        foreach ($modelMappingFields as $fieldName => $columnName) {
+        $this->_pkName = strtolower($modelClass::getName()) . '_pk';
+        unset($modelMappingFields[$this->_pkName]);
 
+        if (!empty($row[$this->_pkName])) {
+            if (!empty($this->_pk) && $row[$this->_pkName] != $this->_pk) {
+                throw new Exception('Ambiguous pk: ' . var_export($row[$this->_pkName], true) . ' or ' . var_export($this->_pk, true));
+            }
+
+            $this->_pk = $row[$this->_pkName];
+            unset($row[$this->_pkName]);
+        }
+
+        foreach ($modelMappingFields as $fieldName => $columnName) {
             $this->_row[$fieldName] = null;
 
             if (array_key_exists($fieldName, $row)) {
@@ -68,7 +84,7 @@ abstract class Model
                     $default = Date::getCurrent();
                 }
 
-                $this->set($fieldName, $default);
+                $this->set($fieldName, $default, false);
             }
         }
 
@@ -88,6 +104,8 @@ abstract class Model
         if (!$modelClass) {
             $modelClass = get_called_class();
         }
+
+        $modelClass = Object::getClassByClassShortName(__CLASS__, $modelClass);
 
         if (in_array('ice\core\model\Factory_Delegate', class_implements($modelClass))) {
             $modelClass = get_parent_class($modelClass);
@@ -124,6 +142,16 @@ abstract class Model
     }
 
     /**
+     * Return simple name of model class
+     *
+     * @return string
+     */
+    public static function getName()
+    {
+        return Object::getName(self::getClass());
+    }
+
+    /**
      * Method set value of model field
      *
      * @code
@@ -134,33 +162,40 @@ abstract class Model
      *
      * @param $fieldName
      * @param null $fieldValue
-     * @param bool $isUpdate
-     * @return array
+     * @param bool $isAffected
+     * @return Model
      * @throws Exception
      */
-    public function set($fieldName, $fieldValue = null, $isUpdate = true)
+    public function set($fieldName, $fieldValue = null, $isAffected = true)
     {
         if (is_array($fieldName)) {
-            $set = [];
-
             foreach ($fieldName as $key => $value) {
-                array_merge($set, $this->set($key, $value, $isUpdate));
+                $this->set($key, $value, $isAffected);
             }
 
-            return $set;
+            return $this;
         }
 
         $fieldName = $this->getFieldName($fieldName);
 
+        if ($this->getPkName() == $fieldName) {
+            if ($isAffected && $this->_pk != $fieldValue) {
+                $this->_affected[$fieldName] = $fieldValue;
+            }
+
+            $this->_pk = $fieldValue;
+
+            return $this;
+        }
+
         if (array_key_exists($fieldName, $this->_row)) {
-//            var_dump($fieldName, $isUpdate, $this->_row[$fieldName] != $fieldValue, $this->_row[$fieldName], $fieldValue, "\n\n");
-            if ($isUpdate && $this->_row[$fieldName] != $fieldValue) {
-                $this->_updates[$fieldName] = $fieldValue;
+            if ($isAffected && $this->_row[$fieldName] != $fieldValue) {
+                $this->_affected[$fieldName] = $fieldValue;
             }
 
             $this->_row[$fieldName] = $fieldValue;
 
-            return [[$fieldName => $this->_row[$fieldName]]];
+            return $this;
         }
 
         $jsonFieldName = $fieldName . '__json';
@@ -175,7 +210,7 @@ abstract class Model
             return $this->set(
                 $jsonFieldName,
                 Json::encode(array_merge($this->get($fieldName), $this->_json[$fieldName])),
-                $isUpdate
+                $isAffected
             );
         }
 
@@ -192,7 +227,7 @@ abstract class Model
 
         throw new Exception('Could not set value:' . "\n" .
             print_r($fieldValue, true) .
-            'Field "' . $fieldName . '" not found in Model "' . $this->getModelName() . '"');
+            'Field "' . $fieldName . '" not found in Model "' . $this->getName() . '"');
     }
 
     /**
@@ -203,6 +238,8 @@ abstract class Model
      */
     public static function getFieldName($fieldName)
     {
+        $fieldName = trim($fieldName);
+
         $isShort = strpos($fieldName, '/');
 
         if ($isShort === false) {
@@ -213,27 +250,28 @@ abstract class Model
 
         $modelSchemeName = $isShort
             ? substr($fieldName, 0, $isShort)
-            : $modelClass::getModelName();
+            : $modelClass::getName();
 
         return strtolower($modelSchemeName) . '_' . substr($fieldName, $isShort + 1);
     }
 
     /**
-     * Return simple name of model class
+     * Get field name of primary key
      *
      * @return string
      */
-    public static function getModelName()
+    public function getPkName()
     {
-        return Object::getName(self::getClass());
+        return $this->_pkName;
     }
 
     /**
      * Get value of model field
      *
      * @param null $fieldName
-     * @return array
+     * @param bool $isNotNull
      * @throws Exception
+     * @return mixed
      */
     public function get($fieldName = null, $isNotNull = true)
     {
@@ -243,10 +281,14 @@ abstract class Model
 
         $fieldName = $this->getFieldName($fieldName);
 
+        if ($this->getPkName() == $fieldName) {
+            return $this->getPk();
+        }
+
         foreach (array($this->_row, $this->_json, $this->_fk) as $fields) {
             if (array_key_exists($fieldName, $fields)) {
                 if ($isNotNull && $fields[$fieldName] === null) {
-                    throw new Exception('field "' . $fieldName . '" of model "' . $this->getModelName() . '" is null');
+                    throw new Exception('field "' . $fieldName . '" of model "' . $this->getName() . '" is null');
                 }
                 return $fields[$fieldName];
             }
@@ -264,13 +306,15 @@ abstract class Model
             return $this->_json[$fieldName];
         }
 
-        $foreignKeyName = strtolower(Object::getName(Model::getClass($fieldName))) . '__fk';
+        $fieldName = Model::getClass($fieldName);
+
+        // one-to-many
+        $foreignKeyName = strtolower(Object::getName($fieldName)) . '__fk';
         if (array_key_exists($foreignKeyName, $this->_row)) {
-            $fieldName = Model::getClass($fieldName);
             $key = $this->_row[$foreignKeyName];
 
             if (!$key) {
-                throw new Exception('Model::__get: Не определен внешний ключ ' . $foreignKeyName . ' в модели ' . $this->getModelName());
+                throw new Exception('Model::__get: Не определен внешний ключ ' . $foreignKeyName . ' в модели ' . $this->getName());
             }
 
             $row = array_merge($this->_data, [strtolower(Object::getName($fieldName)) . '_pk' => $key]);
@@ -278,23 +322,47 @@ abstract class Model
 
             if (!$joinModel) {
                 throw new Exception('Model::__get: Не удалось получить модель по внешнему ключу ' .
-                    $foreignKeyName . '="' . $key . '" в модели ' . $this->getModelName());
+                    $foreignKeyName . '="' . $key . '" в модели ' . $this->getName());
             }
 
             $this->_fk[$fieldName] = $joinModel;
             return $this->_fk[$fieldName];
         }
 
-        throw new Exception('Field "' . $fieldName . '" not found in Model "' . $this->getModelName() . '"');
+        // TODO: Пока лениво подгружаем
+        // many-to-one
+        $foreignKeyName = strtolower($this->getName()) . '__fk';
+        if (array_key_exists($foreignKeyName, $fieldName::getMapping()->getFieldNames())) {
+            $this->_fk[$fieldName] = $fieldName::getQueryBuilder()
+                ->select('*')
+                ->eq($foreignKeyName, $this->getPk())
+                ->execute()
+                ->getCollection();
+
+            return $this->_fk[$fieldName];
+        }
+
+        throw new Exception('Field "' . $fieldName . '" not found in Model "' . $this->getName() . '"');
+    }
+
+    /**
+     * Get primary key of model
+     *
+     * @return mixed
+     */
+    public function getPk()
+    {
+        return $this->_pk;
     }
 
     /**
      * Create model instance
      *
      * @param array $row
+     * @param null $pk
      * @return Model
      */
-    public static function create(array $row)
+    public static function create(array $row = [], $pk = null)
     {
         /** @var Model $modelClass */
         $modelClass = get_called_class();
@@ -303,7 +371,19 @@ abstract class Model
             $modelClass = $modelClass . '_' . $row[$modelClass::getFieldName('/delegate_name')];
         }
 
-        return new $modelClass($row);
+        return new $modelClass($row, $pk);
+    }
+
+    /**
+     * Return instance of query for current model class
+     *
+     * @param string $queryType
+     * @param null $tableAlias
+     * @return Query
+     */
+    public static function getQueryBuilder($queryType = Query::TYPE_SELECT, $tableAlias = null)
+    {
+        return Query::getInstance($queryType, self::getClass(), $tableAlias);
     }
 
     /**
@@ -338,17 +418,22 @@ abstract class Model
     {
         $modelClass = self::getClass();
 
-        $model = Model_Repository::get($modelClass, $pk);
+//        $model = Model_Repository::get($modelClass, $pk);
+//
+//        if ($model) {
+//            return $model;
+//        }
 
-        if ($model) {
-            return $model;
-        }
+        $model = $modelClass::getQueryBuilder()
+            ->select($fieldNames)
+            ->pk($pk)
+            ->limit(1)
+            ->execute($dataSource)
+            ->getModel();
 
-        $model = Model::byQuery($modelClass::getQueryBuilder()->select($fieldNames)->pk($pk), $dataSource);
-
-        if ($model) {
-            Model_Repository::set($modelClass, $pk, $model);
-        }
+//        if ($model) {
+//            Model_Repository::set($modelClass, $pk, $model);
+//        }
 
         return $model;
     }
@@ -389,29 +474,13 @@ abstract class Model
     }
 
     /**
-     * Get model by query
+     * Return collection of current model class name
      *
-     * @param Query $query
-     * @param array $fieldNames
-     * @param Data_Source $dataSource
-     * @return Model|null
+     * @return Collection
      */
-    public static function byQuery(Query $query, $fieldNames = [], Data_Source $dataSource = null)
+    public static function getCollection()
     {
-        return Collection::byQuery($query->limit(1), $fieldNames, $dataSource)->first();
-
-    }
-
-    /**
-     * Return instance of query for current model class
-     *
-     * @param string $statementType
-     * @param null $tableAlias
-     * @return Query
-     */
-    public static function getQueryBuilder($statementType = 'select', $tableAlias = null)
-    {
-        return Query::getInstance($statementType, self::getClass(), $tableAlias);
+        return Collection::create(self::getClass());
     }
 
     /**
@@ -446,68 +515,26 @@ abstract class Model
     }
 
     /**
-     * Get primary key of model
-     *
-     * @return mixed
-     */
-    public function getPk()
-    {
-        /** @var Model $modelClass */
-        $modelClass = self::getClass();
-        return $this->_row[$modelClass::getPkName()];
-    }
-
-    /**
-     * Get field name of primary key
-     *
-     * @return string
-     */
-    public static function getPkName()
-    {
-        /** @var Model $modelName */
-        $modelName = self::getClass();
-        return strtolower($modelName::getModelName()) . '_pk';
-    }
-
-    /**
      * Execute insert into data source
      *
      * @param Data_Source $dataSource
+     * @throws Exception
+     * @internal param $fieldName
+     * @internal param null $value
      * @return Model|null
      */
     public function insert(Data_Source $dataSource = null)
     {
-        /** @var Model $modelClass */
-        $modelClass = self::getClass();
-        return $modelClass::getCollection()->add($this)->insert($dataSource)->first();
-    }
+        if ($this->_pk) {
+            $this->set($this->getPkName(), $this->_pk);
+        }
 
-    /**
-     * Return collection of current model class name
-     *
-     * @param array $fieldNames
-     * @return Collection
-     */
-    public static function getCollection(array $fieldNames = [])
-    {
-        return Collection::create(self::getClass(), $fieldNames);
-    }
+        $this->_pk = $this->getQueryBuilder(Query::TYPE_INSERT)
+            ->values($this->get())
+            ->execute($dataSource)
+            ->getInsertId();
 
-    /**
-     * Execute update for model
-     *
-     * @param $key
-     * @param null $value
-     * @param Data_Source $dataSource
-     * @return Model|null
-     */
-    public function update($key, $value = null, Data_Source $dataSource = null)
-    {
-        $this->set($key, $value);
-
-        /** @var Model $modelClass */
-        $modelClass = self::getClass();
-        return $modelClass::getCollection()->add($this)->update($this->getUpdates(), $dataSource)->first();
+        return $this;
     }
 
     /**
@@ -515,9 +542,48 @@ abstract class Model
      *
      * @return array
      */
-    public function getUpdates()
+    public function getAffected()
     {
-        return $this->_updates;
+        return $this->_affected;
+    }
+
+    /**
+     * Execute update for model
+     *
+     * @param $fieldName
+     * @param null $value
+     * @param Data_Source $dataSource
+     * @throws Exception
+     * @return Model|null
+     */
+    public function update($fieldName, $value = null, Data_Source $dataSource = null)
+    {
+        $pk = $this->getPk();
+
+        $this->set($fieldName, $value);
+
+        $this->getQueryBuilder(Query::TYPE_UPDATE)
+            ->set($this->getAffected())
+            ->pk($pk)
+            ->execute($dataSource);
+
+        return $this;
+    }
+
+    /**
+     * Execute delete for model
+     *
+     * @param Data_Source $dataSource
+     * @throws Exception
+     * @return Model|null
+     */
+    public function delete(Data_Source $dataSource = null)
+    {
+        $this->getQueryBuilder(Query::TYPE_DELETE)
+            ->pk($this->getPk())
+            ->execute($dataSource);
+
+        return $this;
     }
 
     /**

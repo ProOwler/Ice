@@ -26,7 +26,7 @@ class Object
         $config = Config::getInstance($class);
 
         if (!$config) {
-            throw new Exception('Prefix "' . $prefix .  '" for class "' . $class . '" not found');
+            throw new Exception('Prefix "' . $prefix . '" for class "' . $class . '" not found');
         }
 
         return Config::getInstance($class)->get($prefix) . $modelName;

@@ -20,31 +20,28 @@ class Data implements Iterator, ArrayAccess, Countable, Serializable
 {
     const RESULT_MODEL_CLASS = 'modelName';
     const RESULT_ROWS = 'rows';
-    const RESULT_SQL = 'sql';
+    const QUERY_DUMP = 'query_dump';
     const NUM_ROWS = 'numRows';
     const AFFECTED_ROWS = 'affectedRows';
     const INSERT_ID = 'insertId';
     const FOUND_ROWS = 'foundRows';
     const PAGE = 'page';
     const LIMIT = 'limit';
-
-    private $isValid = false;
-
-    /** @var int row index of iterator */
-    private $position = 0;
-
     /** @var array Default data */
     protected $_result = [
         self::RESULT_MODEL_CLASS => null,
         self::RESULT_ROWS => [],
-        self::RESULT_SQL => '',
+        self::QUERY_DUMP => '',
         self::NUM_ROWS => 0,
         self::FOUND_ROWS => 0,
         self::AFFECTED_ROWS => 0,
         self::PAGE => 1,
-        self::LIMIT => 1000
+        self::LIMIT => 1000,
+        self::INSERT_ID => null
     ];
-
+    private $isValid = false;
+    /** @var int row index of iterator */
+    private $position = 0;
     private $_transformations = [];
 
     /**
@@ -56,6 +53,22 @@ class Data implements Iterator, ArrayAccess, Countable, Serializable
     {
         $this->_result = array_merge($this->_result, $result);
         $this->isValid = true;
+    }
+
+    /**
+     * Get collection from data
+     *
+     * @return Collection
+     */
+    public function getCollection()
+    {
+        /** @var Model $modelClass */
+        $modelClass = $this->getResult()[self::RESULT_MODEL_CLASS];
+
+        $collection = $modelClass::getCollection();
+        $collection->setData($this);
+
+        return $collection;
     }
 
     /**
@@ -74,20 +87,27 @@ class Data implements Iterator, ArrayAccess, Countable, Serializable
         return $this->_result;
     }
 
-    /**
-     * Get collection from data
-     *
-     * @return Collection
-     */
-    public function getCollection()
+    private function applyTransformations($rows)
     {
-        /** @var Model $modelClass */
-        $modelClass = $this->getResult()[self::RESULT_MODEL_CLASS];
+        if (empty($this->_transformations)) {
+            $this->_transformations = null;
+            return $rows;
+        }
 
-        $collection = $modelClass::getCollection();
-        $collection->setData($this);
+        $transformData = [];
+        foreach ($this->_transformations as list($transformationName, $params)) {
+            $transformData[] = Transformation::getInstance($transformationName)
+                ->transform($this->_result[self::RESULT_MODEL_CLASS], $rows, $params);
+        }
 
-        return $collection;
+        foreach ($rows as $key => &$row) {
+            foreach ($transformData as $transform) {
+                $row = array_merge($row, $transform[$key]);
+            }
+        }
+
+        $this->_transformations = null;
+        return $rows;
     }
 
     /**
@@ -263,16 +283,6 @@ class Data implements Iterator, ArrayAccess, Countable, Serializable
     }
 
     /**
-     * Return keys of data
-     *
-     * @return array
-     */
-    public function getKeys()
-    {
-        return array_keys($this->_result[DATA::RESULT_ROWS]);
-    }
-
-    /**
      * Remove row from data by pk
      *
      * @param $pk
@@ -290,9 +300,9 @@ class Data implements Iterator, ArrayAccess, Countable, Serializable
      *
      * @return string
      */
-    public function getSql()
+    public function getQueryDump()
     {
-        return $this->_result[DATA::RESULT_SQL];
+        return $this->_result[DATA::QUERY_DUMP];
     }
 
     public function addTransformation($transformation, $params)
@@ -303,29 +313,6 @@ class Data implements Iterator, ArrayAccess, Countable, Serializable
 
         $this->_transformations[] = [$transformation, $params];
         return $this;
-    }
-
-    private function applyTransformations($rows)
-    {
-        if (empty($this->_transformations)) {
-            $this->_transformations = null;
-            return $rows;
-        }
-
-        $transformData = [];
-        foreach ($this->_transformations as list($transformationName, $params)) {
-            $transformData[] = Transformation::getInstance($transformationName)
-                ->transform($this->_result[self::RESULT_MODEL_CLASS], $rows, $params);
-        }
-
-        foreach ($rows as $key => &$row) {
-            foreach ($transformData as $transform) {
-                $row = array_merge($row, $transform[$key]);
-            }
-        }
-
-        $this->_transformations = null;
-        return $rows;
     }
 
     public function filter($filterScheme)
@@ -346,20 +333,13 @@ class Data implements Iterator, ArrayAccess, Countable, Serializable
     }
 
     /**
-     * (PHP 5 &gt;= 5.0.0)<br/>
-     * Whether a offset exists
-     * @link http://php.net/manual/en/arrayaccess.offsetexists.php
-     * @param mixed $offset <p>
-     * An offset to check for.
-     * </p>
-     * @return boolean true on success or false on failure.
-     * </p>
-     * <p>
-     * The return value will be casted to boolean if non-boolean was returned.
+     * Return keys of data
+     *
+     * @return array
      */
-    public function offsetExists($offset)
+    public function getKeys()
     {
-        return isset($this->_result[DATA::RESULT_ROWS][$offset]);
+        return array_keys($this->_result[DATA::RESULT_ROWS]);
     }
 
     /**
@@ -374,6 +354,23 @@ class Data implements Iterator, ArrayAccess, Countable, Serializable
     public function offsetGet($offset)
     {
         return $this->offsetExists($offset) ? $this->_result[DATA::RESULT_ROWS][$offset] : null;
+    }
+
+    /**
+     * (PHP 5 &gt;= 5.0.0)<br/>
+     * Whether a offset exists
+     * @link http://php.net/manual/en/arrayaccess.offsetexists.php
+     * @param mixed $offset <p>
+     * An offset to check for.
+     * </p>
+     * @return boolean true on success or false on failure.
+     * </p>
+     * <p>
+     * The return value will be casted to boolean if non-boolean was returned.
+     */
+    public function offsetExists($offset)
+    {
+        return isset($this->_result[DATA::RESULT_ROWS][$offset]);
     }
 
     /**
@@ -448,5 +445,10 @@ class Data implements Iterator, ArrayAccess, Countable, Serializable
     public function unserialize($serialized)
     {
         $this->_result = Serializer::unserialize($serialized);
+    }
+
+    public function getInsertId()
+    {
+        return $this->_result[DATA::INSERT_ID];
     }
 }

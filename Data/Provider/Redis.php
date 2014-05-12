@@ -8,6 +8,36 @@ class Redis extends Data_Provider
 {
     public static $connections = [];
 
+    public function get($key = null)
+    {
+        return $this->getConnection()->get($this->getKey($key));
+    }
+
+    public function set($key, $value, $ttl = 3600)
+    {
+        return $this->getConnection()->set($this->getKey($key), $value, $ttl);
+    }
+
+    public function delete($key)
+    {
+        throw new Exception('Implement delete() method.');
+    }
+
+    public function inc($key, $step = 1)
+    {
+        throw new Exception('Implement inc() method.');
+    }
+
+    public function dec($key, $step = 1)
+    {
+        throw new Exception('Implement dec() method.');
+    }
+
+    public function flushAll()
+    {
+        throw new Exception('Implement flushAll() method.');
+    }
+
     /**
      * @param $connection
      * @return boolean
@@ -50,36 +80,6 @@ class Redis extends Data_Provider
     {
         $this->getConnection()->close();
         return true;
-    }
-
-    public function get($key = null)
-    {
-        return $this->getConnection()->get($this->getKey($key));
-    }
-
-    public function set($key, $value, $ttl = 3600)
-    {
-        return $this->getConnection()->set($this->getKey($key), $value, $ttl);
-    }
-
-    public function delete($key)
-    {
-        throw new Exception('Implement delete() method.');
-    }
-
-    public function inc($key, $step = 1)
-    {
-        throw new Exception('Implement inc() method.');
-    }
-
-    public function dec($key, $step = 1)
-    {
-        throw new Exception('Implement dec() method.');
-    }
-
-    public function flushAll()
-    {
-        throw new Exception('Implement flushAll() method.');
     }
 
     /**

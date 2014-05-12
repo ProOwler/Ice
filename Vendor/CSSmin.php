@@ -157,42 +157,6 @@ class CSSmin
     }
 
     /**
-     * Sets the memory limit for this script
-     * @param int|string $limit
-     */
-    public function set_memory_limit($limit)
-    {
-        $this->memory_limit = $this->normalize_int($limit);
-    }
-
-    /**
-     * Sets the maximum execution time for this script
-     * @param int|string $seconds
-     */
-    public function set_max_execution_time($seconds)
-    {
-        $this->max_execution_time = (int)$seconds;
-    }
-
-    /**
-     * Sets the PCRE backtrack limit for this script
-     * @param int $limit
-     */
-    public function set_pcre_backtrack_limit($limit)
-    {
-        $this->pcre_backtrack_limit = (int)$limit;
-    }
-
-    /**
-     * Sets the PCRE recursion limit for this script
-     * @param int $limit
-     */
-    public function set_pcre_recursion_limit($limit)
-    {
-        $this->pcre_recursion_limit = (int)$limit;
-    }
-
-    /**
      * Try to configure PHP to use at least the suggested minimum settings
      */
     private function do_raise_php_limits()
@@ -212,6 +176,153 @@ class CSSmin
                 ini_set($name, $suggested);
             }
         }
+    }
+
+    /**
+     * Convert strings like "64M" or "30" to int values
+     * @param mixed $size
+     * @return int
+     */
+    private function normalize_int($size)
+    {
+        if (is_string($size)) {
+            switch (substr($size, -1)) {
+                case 'M':
+                case 'm':
+                    return $size * 1048576;
+                case 'K':
+                case 'k':
+                    return $size * 1024;
+                case 'G':
+                case 'g':
+                    return $size * 1073741824;
+            }
+        }
+
+        return (int)$size;
+    }
+
+    /**
+     * Utility method to replace all data urls with tokens before we start
+     * compressing, to avoid performance issues running some of the subsequent
+     * regexes against large strings chunks.
+     *
+     * @param string $css
+     * @return string
+     */
+    private function extract_data_urls($css)
+    {
+        // Leave data urls alone to increase parse performance.
+        $max_index = strlen($css) - 1;
+        $append_index = $index = $last_index = $offset = 0;
+        $sb = [];
+        $pattern = '/url\(\s*(["\']?)data\:/i';
+
+        // Since we need to account for non-base64 data urls, we need to handle
+        // ' and ) being part of the data string. Hence switching to indexOf,
+        // to determine whether or not we have matching string terminators and
+        // handling sb appends directly, instead of using matcher.append* methods.
+
+        while (preg_match($pattern, $css, $m, 0, $offset)) {
+            $index = $this->index_of($css, $m[0], $offset);
+            $last_index = $index + strlen($m[0]);
+            $start_index = $index + 4; // "url(".length()
+            $end_index = $last_index - 1;
+            $terminator = $m[1]; // ', " or empty (not quoted)
+            $found_terminator = false;
+
+            if (strlen($terminator) === 0) {
+                $terminator = ')';
+            }
+
+            while ($found_terminator === false && $end_index + 1 <= $max_index) {
+                $end_index = $this->index_of($css, $terminator, $end_index + 1);
+
+                // endIndex == 0 doesn't really apply here
+                if ($end_index > 0 && substr($css, $end_index - 1, 1) !== '\\') {
+                    $found_terminator = true;
+                    if (')' != $terminator) {
+                        $end_index = $this->index_of($css, ')', $end_index);
+                    }
+                }
+            }
+
+            // Enough searching, start moving stuff over to the buffer
+            $sb[] = $this->str_slice($css, $append_index, $index);
+
+            if ($found_terminator) {
+                $token = $this->str_slice($css, $start_index, $end_index);
+                $token = preg_replace('/\s+/', '', $token);
+                $this->preserved_tokens[] = $token;
+
+                $preserver = 'url(' . self::TOKEN . (count($this->preserved_tokens) - 1) . '___)';
+                $sb[] = $preserver;
+
+                $append_index = $end_index + 1;
+            } else {
+                // No end terminator found, re-add the whole match. Should we throw/warn here?
+                $sb[] = $this->str_slice($css, $index, $last_index);
+                $append_index = $last_index;
+            }
+
+            $offset = $last_index;
+        }
+
+        $sb[] = $this->str_slice($css, $append_index);
+
+        return implode('', $sb);
+    }
+
+    /**
+     * PHP port of Javascript's "indexOf" function for strings only
+     * Author: Tubal Martin http://blog.margenn.com
+     *
+     * @param string $haystack
+     * @param string $needle
+     * @param int $offset index (optional)
+     * @return int
+     */
+    private function index_of($haystack, $needle, $offset = 0)
+    {
+        $index = strpos($haystack, $needle, $offset);
+
+        return ($index !== false) ? $index : -1;
+    }
+
+    /**
+     * PHP port of Javascript's "slice" function for strings only
+     * Author: Tubal Martin http://blog.margenn.com
+     * Tests: http://margenn.com/tubal/str_slice/
+     *
+     * @param string $str
+     * @param int $start index
+     * @param int|bool $end index (optional)
+     * @return string
+     */
+    private function str_slice($str, $start = 0, $end = false)
+    {
+        if ($end !== false && ($start < 0 || $end <= 0)) {
+            $max = strlen($str);
+
+            if ($start < 0) {
+                if (($start = $max + $start) < 0) {
+                    return '';
+                }
+            }
+
+            if ($end < 0) {
+                if (($end = $max + $end) < 0) {
+                    return '';
+                }
+            }
+
+            if ($end <= $start) {
+                return '';
+            }
+        }
+
+        $slice = ($end === false) ? substr($str, $start) : substr($str, $start, $end - $start);
+        return ($slice === false) ? '' : $slice;
     }
 
     /**
@@ -449,77 +560,6 @@ class CSSmin
     }
 
     /**
-     * Utility method to replace all data urls with tokens before we start
-     * compressing, to avoid performance issues running some of the subsequent
-     * regexes against large strings chunks.
-     *
-     * @param string $css
-     * @return string
-     */
-    private function extract_data_urls($css)
-    {
-        // Leave data urls alone to increase parse performance.
-        $max_index = strlen($css) - 1;
-        $append_index = $index = $last_index = $offset = 0;
-        $sb = [];
-        $pattern = '/url\(\s*(["\']?)data\:/i';
-
-        // Since we need to account for non-base64 data urls, we need to handle
-        // ' and ) being part of the data string. Hence switching to indexOf,
-        // to determine whether or not we have matching string terminators and
-        // handling sb appends directly, instead of using matcher.append* methods.
-
-        while (preg_match($pattern, $css, $m, 0, $offset)) {
-            $index = $this->index_of($css, $m[0], $offset);
-            $last_index = $index + strlen($m[0]);
-            $start_index = $index + 4; // "url(".length()
-            $end_index = $last_index - 1;
-            $terminator = $m[1]; // ', " or empty (not quoted)
-            $found_terminator = false;
-
-            if (strlen($terminator) === 0) {
-                $terminator = ')';
-            }
-
-            while ($found_terminator === false && $end_index + 1 <= $max_index) {
-                $end_index = $this->index_of($css, $terminator, $end_index + 1);
-
-                // endIndex == 0 doesn't really apply here
-                if ($end_index > 0 && substr($css, $end_index - 1, 1) !== '\\') {
-                    $found_terminator = true;
-                    if (')' != $terminator) {
-                        $end_index = $this->index_of($css, ')', $end_index);
-                    }
-                }
-            }
-
-            // Enough searching, start moving stuff over to the buffer
-            $sb[] = $this->str_slice($css, $append_index, $index);
-
-            if ($found_terminator) {
-                $token = $this->str_slice($css, $start_index, $end_index);
-                $token = preg_replace('/\s+/', '', $token);
-                $this->preserved_tokens[] = $token;
-
-                $preserver = 'url(' . self::TOKEN . (count($this->preserved_tokens) - 1) . '___)';
-                $sb[] = $preserver;
-
-                $append_index = $end_index + 1;
-            } else {
-                // No end terminator found, re-add the whole match. Should we throw/warn here?
-                $sb[] = $this->str_slice($css, $index, $last_index);
-                $append_index = $last_index;
-            }
-
-            $offset = $last_index;
-        }
-
-        $sb[] = $this->str_slice($css, $append_index);
-
-        return implode('', $sb);
-    }
-
-    /**
      * Utility method to compress hex color values of the form #AABBCC to #ABC or short color name.
      *
      * DOES NOT compress CSS ID selectors which match the above pattern (which would break things).
@@ -587,9 +627,45 @@ class CSSmin
         return implode('', $sb);
     }
 
+    /**
+     * Sets the memory limit for this script
+     * @param int|string $limit
+     */
+    public function set_memory_limit($limit)
+    {
+        $this->memory_limit = $this->normalize_int($limit);
+    }
+
     /* CALLBACKS
      * ---------------------------------------------------------------------------------------------
      */
+
+    /**
+     * Sets the maximum execution time for this script
+     * @param int|string $seconds
+     */
+    public function set_max_execution_time($seconds)
+    {
+        $this->max_execution_time = (int)$seconds;
+    }
+
+    /**
+     * Sets the PCRE backtrack limit for this script
+     * @param int $limit
+     */
+    public function set_pcre_backtrack_limit($limit)
+    {
+        $this->pcre_backtrack_limit = (int)$limit;
+    }
+
+    /**
+     * Sets the PCRE recursion limit for this script
+     * @param int $limit
+     */
+    public function set_pcre_recursion_limit($limit)
+    {
+        $this->pcre_recursion_limit = (int)$limit;
+    }
 
     private function replace_string($matches)
     {
@@ -624,6 +700,56 @@ class CSSmin
         return 'calc(' . self::TOKEN . (count($this->preserved_tokens) - 1) . '___' . ')';
     }
 
+    private function hsl_to_hex($matches)
+    {
+        $values = explode(',', str_replace('%', '', $matches[1]));
+        $h = floatval($values[0]);
+        $s = floatval($values[1]);
+        $l = floatval($values[2]);
+
+        // Wrap and clamp, then fraction!
+        $h = ((($h % 360) + 360) % 360) / 360;
+        $s = $this->clamp_number($s, 0, 100) / 100;
+        $l = $this->clamp_number($l, 0, 100) / 100;
+
+        if ($s == 0) {
+            $r = $g = $b = $this->round_number(255 * $l);
+        } else {
+            $v2 = $l < 0.5 ? $l * (1 + $s) : ($l + $s) - ($s * $l);
+            $v1 = (2 * $l) - $v2;
+            $r = $this->round_number(255 * $this->hue_to_rgb($v1, $v2, $h + (1 / 3)));
+            $g = $this->round_number(255 * $this->hue_to_rgb($v1, $v2, $h));
+            $b = $this->round_number(255 * $this->hue_to_rgb($v1, $v2, $h - (1 / 3)));
+        }
+
+        return $this->rgb_to_hex(array('', $r . ',' . $g . ',' . $b, $matches[2]));
+    }
+
+    private function clamp_number($n, $min, $max)
+    {
+        return min(max($n, $min), $max);
+    }
+
+    private function round_number($n)
+    {
+        return intval(floor(floatval($n) + 0.5), 10);
+    }
+
+    private function hue_to_rgb($v1, $v2, $vh)
+    {
+        $vh = $vh < 0 ? $vh + 1 : ($vh > 1 ? $vh - 1 : $vh);
+        if ($vh * 6 < 1) {
+            return $v1 + ($v2 - $v1) * 6 * $vh;
+        }
+        if ($vh * 2 < 1) {
+            return $v2;
+        }
+        if ($vh * 3 < 2) {
+            return $v1 + ($v2 - $v1) * ((2 / 3) - $vh) * 6;
+        }
+        return $v1;
+    }
+
     private function rgb_to_hex($matches)
     {
         // Support for percentage values rgb(100%, 0%, 45%);
@@ -650,30 +776,9 @@ class CSSmin
         return '#' . implode('', $rgbcolors) . $matches[2];
     }
 
-    private function hsl_to_hex($matches)
-    {
-        $values = explode(',', str_replace('%', '', $matches[1]));
-        $h = floatval($values[0]);
-        $s = floatval($values[1]);
-        $l = floatval($values[2]);
-
-        // Wrap and clamp, then fraction!
-        $h = ((($h % 360) + 360) % 360) / 360;
-        $s = $this->clamp_number($s, 0, 100) / 100;
-        $l = $this->clamp_number($l, 0, 100) / 100;
-
-        if ($s == 0) {
-            $r = $g = $b = $this->round_number(255 * $l);
-        } else {
-            $v2 = $l < 0.5 ? $l * (1 + $s) : ($l + $s) - ($s * $l);
-            $v1 = (2 * $l) - $v2;
-            $r = $this->round_number(255 * $this->hue_to_rgb($v1, $v2, $h + (1 / 3)));
-            $g = $this->round_number(255 * $this->hue_to_rgb($v1, $v2, $h));
-            $b = $this->round_number(255 * $this->hue_to_rgb($v1, $v2, $h - (1 / 3)));
-        }
-
-        return $this->rgb_to_hex(array('', $r . ',' . $g . ',' . $b, $matches[2]));
-    }
+    /* HELPERS
+     * ---------------------------------------------------------------------------------------------
+     */
 
     private function lowercase_pseudo_first($matches)
     {
@@ -703,110 +808,5 @@ class CSSmin
     private function lowercase_properties($matches)
     {
         return $matches[1] . strtolower($matches[2]) . $matches[3];
-    }
-
-    /* HELPERS
-     * ---------------------------------------------------------------------------------------------
-     */
-
-    private function hue_to_rgb($v1, $v2, $vh)
-    {
-        $vh = $vh < 0 ? $vh + 1 : ($vh > 1 ? $vh - 1 : $vh);
-        if ($vh * 6 < 1) {
-            return $v1 + ($v2 - $v1) * 6 * $vh;
-        }
-        if ($vh * 2 < 1) {
-            return $v2;
-        }
-        if ($vh * 3 < 2) {
-            return $v1 + ($v2 - $v1) * ((2 / 3) - $vh) * 6;
-        }
-        return $v1;
-    }
-
-    private function round_number($n)
-    {
-        return intval(floor(floatval($n) + 0.5), 10);
-    }
-
-    private function clamp_number($n, $min, $max)
-    {
-        return min(max($n, $min), $max);
-    }
-
-    /**
-     * PHP port of Javascript's "indexOf" function for strings only
-     * Author: Tubal Martin http://blog.margenn.com
-     *
-     * @param string $haystack
-     * @param string $needle
-     * @param int $offset index (optional)
-     * @return int
-     */
-    private function index_of($haystack, $needle, $offset = 0)
-    {
-        $index = strpos($haystack, $needle, $offset);
-
-        return ($index !== false) ? $index : -1;
-    }
-
-    /**
-     * PHP port of Javascript's "slice" function for strings only
-     * Author: Tubal Martin http://blog.margenn.com
-     * Tests: http://margenn.com/tubal/str_slice/
-     *
-     * @param string $str
-     * @param int $start index
-     * @param int|bool $end index (optional)
-     * @return string
-     */
-    private function str_slice($str, $start = 0, $end = false)
-    {
-        if ($end !== false && ($start < 0 || $end <= 0)) {
-            $max = strlen($str);
-
-            if ($start < 0) {
-                if (($start = $max + $start) < 0) {
-                    return '';
-                }
-            }
-
-            if ($end < 0) {
-                if (($end = $max + $end) < 0) {
-                    return '';
-                }
-            }
-
-            if ($end <= $start) {
-                return '';
-            }
-        }
-
-        $slice = ($end === false) ? substr($str, $start) : substr($str, $start, $end - $start);
-        return ($slice === false) ? '' : $slice;
-    }
-
-    /**
-     * Convert strings like "64M" or "30" to int values
-     * @param mixed $size
-     * @return int
-     */
-    private function normalize_int($size)
-    {
-        if (is_string($size)) {
-            switch (substr($size, -1)) {
-                case 'M':
-                case 'm':
-                    return $size * 1048576;
-                case 'K':
-                case 'k':
-                    return $size * 1024;
-                case 'G':
-                case 'g':
-                    return $size * 1073741824;
-            }
-        }
-
-        return (int)$size;
     }
 }

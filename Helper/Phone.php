@@ -8,8 +8,10 @@
 
 namespace ice\helper;
 
-class Phone {
-    public static function parse($number, $isOnlySigits = false) {
+class Phone
+{
+    public static function parse($number, $isOnlySigits = false)
+    {
         $number = '+ 7' . preg_replace('~.*(\d{3})[^\d]*(\d{3})[^\d]*(\d{4}).*~', '($1) $2-$3', $number);
 
         if ($isOnlySigits) {

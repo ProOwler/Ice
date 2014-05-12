@@ -27,7 +27,7 @@ class Account_Type_Email_Password extends Account_Type implements Factory_Delega
         }
         $user = User::getCurrent();
         if ($user->isGuest()) {
-            $fields =['is_active' => 1];
+            $fields = ['is_active' => 1];
 
             $user = User::create($fields)->insert();
         }

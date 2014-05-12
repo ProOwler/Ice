@@ -19,11 +19,12 @@ class Loader
      * Load class
      *
      * @param $class
-     * @throws \ice\Exception
+     * @return bool
+     * @throws Exception
      */
     public static function load($class)
     {
-        if (class_exists($class)) {
+        if (class_exists($class, false)) {
             return;
         }
 
@@ -38,14 +39,18 @@ class Loader
 
         $fileName = self::getFilePath($class, '.php');
 
-//        if (function_exists('fb')) {
-//            fb($fileName);
-//        }
-
-        if ($fileName) {
-            $dataProvider->set($class, $fileName);
+        if (file_exists($fileName)) {
             require_once $fileName;
+
+            if (class_exists($class, false) || interface_exists($class, false)) {
+                $dataProvider->set($class, $fileName);
+                return;
+            }
+
+            throw new Exception('File exists, but class "' . $class . '" not found');
         }
+
+        throw new Exception('Class "' . $class . '" not found');
     }
 
     /**

@@ -48,7 +48,14 @@ class Config implements Iterator
             ? $className . '_' . $postfix
             : $className;
 
-        $fileName = Loader::getFilePath($configName, '.php', 'Config', false, true, true);
+        $filePath = '';
+
+        foreach (explode('\\', $configName) as $filePathPart) {
+            $filePathPart[0] = strtoupper($filePathPart[0]);
+            $filePath .= $filePathPart . '/';
+        }
+
+        $fileName = Ice::getProjectPath() . 'Config/' . str_replace('_', '/', rtrim($filePath, '/')) . '.php';
 
         Dir::get(dirname($fileName));
 
@@ -120,7 +127,6 @@ class Config implements Iterator
 
         $config += $selfConfig;
 
-
         if (empty($config)) {
             return null;
         }
@@ -140,7 +146,7 @@ class Config implements Iterator
      * @throws Exception
      * @return string
      */
-    public function get($key, $isRequired = true)
+    public function get($key = null, $isRequired = true)
     {
         $param = null;
 

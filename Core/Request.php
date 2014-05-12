@@ -5,17 +5,15 @@ use Locale;
 
 class Request
 {
-    const DEFAULT_DATA_PROVIDER_KEY = 'Request:http/';
-
-    public static function getParams()
-    {
-        return \ice\data\provider\Request::getInstance()->get();
-    }
-
     public static function getParam($paramName)
     {
         $params = self::getParams();
         return isset($params[$paramName]) ? $params[$paramName] : null;
+    }
+
+    public static function getParams()
+    {
+        return \ice\data\provider\Request::getInstance()->get();
     }
 
     public static function locale()
@@ -32,7 +30,8 @@ class Request
             : 'php://input';
     }
 
-    public static function queryString() {
+    public static function queryString()
+    {
         return isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
     }
 
@@ -71,5 +70,10 @@ class Request
             : (isset($_SERVER['SHELL'])
                 ? $_SERVER['SHELL']
                 : 'unknown');
+    }
+
+    public static function referer()
+    {
+        return isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '';
     }
 }

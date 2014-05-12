@@ -29,6 +29,9 @@ return [
         ],
         'ice\core\Validator' => [
             'Ice' => 'ice\validator\\'
+        ],
+        'ice\core\Query_Translator' => [
+            'Ice' => 'ice\query\translator\\'
         ]
     ],
     'host' => '',
@@ -39,19 +42,28 @@ return [
     'environment' => [],
     'environments' => [
         'production' => [
+            'debug' => false,
             'dataProviderKeys' => [
                 'ice\core\Data_Source' => 'Mysqli:default/mysql',
                 'ice\core\Loader' => OBJECT_CACHE . ':storage/loader',
-                'ice\core\Action' => OBJECT_CACHE . ':storage/action',
+                'ice\core\Action' => [
+                    'instance' => OBJECT_CACHE . ':storage/action',
+                    'output' => STRING_CACHE . ':cache/action'
+                ],
                 'ice\core\Route' => OBJECT_CACHE . ':storage/router',
                 'ice\core\Config' => OBJECT_CACHE . ':storage/config',
                 'ice\core\View_Render' => OBJECT_CACHE . ':storage/view_render',
                 'ice\core\Query_Translator' => OBJECT_CACHE . ':storage/query_translator',
-                'ice\core\Query' => STRING_CACHE . ':cache/query',
+                'ice\core\Query' => [
+                    'sql' => STRING_CACHE . ':cache/sql',
+                    'query' => STRING_CACHE . ':cache/query',
+                ],
                 'ice\core\Model_Mapping' => OBJECT_CACHE . ':storage/model_mapping',
                 'ice\core\Data_Mapping' => OBJECT_CACHE . ':storage/data_mapping',
                 'ice\core\Model_Scheme' => OBJECT_CACHE . ':storage/model_scheme',
-                'ice\core\Validator' => OBJECT_CACHE . ':storage/validator'
+                'ice\core\Validator' => OBJECT_CACHE . ':storage/validator',
+                'ice\core\Cache' => STRING_CACHE . ':cache/tags',
+                'ice\core\View' => STRING_CACHE . ':cache/view',
             ],
             'dataProviders' => [
                 OBJECT_CACHE . ':storage' => [],

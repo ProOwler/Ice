@@ -2,7 +2,6 @@
 namespace ice\core;
 
 use ice\Exception;
-use ice\helper\Json;
 use ice\helper\Object;
 use ice\Ice;
 
@@ -17,6 +16,32 @@ abstract class Data_Source
     private $_cacheDataProvider = null;
 
     private $_dataSourceKey = null;
+
+    private function __construct($dataSourceKey)
+    {
+        $this->_dataSourceKey = $dataSourceKey;
+    }
+
+    public static function getDefault()
+    {
+        return self::getInstance(Ice::getEnvironment()->get('dataProviderKeys/' . __CLASS__));
+    }
+
+    /**
+     * @param $dataSourceKey // example: 'Mysqli:production/scheme'
+     * @return Data_Source
+     */
+    public static function getInstance($dataSourceKey)
+    {
+        if (isset(self::$_dataSources[$dataSourceKey])) {
+            return self::$_dataSources[$dataSourceKey];
+        }
+
+        $dataSourceClass = 'ice\data\source\\' . strstr($dataSourceKey, ':', true);
+        self::$_dataSources[$dataSourceKey] = new $dataSourceClass($dataSourceKey);
+
+        return self::$_dataSources[$dataSourceKey];
+    }
 
     /**
      * @param Query $query
@@ -43,71 +68,9 @@ abstract class Data_Source
      */
     abstract public function delete(Query $query);
 
-    private function __construct($dataSourceKey)
+    public function getName()
     {
-        $this->_dataSourceKey = $dataSourceKey;
-    }
-
-    /**
-     * @param Query $query
-     * @param bool $isUseCache
-     * @throws Exception
-     * @return Data
-     */
-    public function execute(Query &$query, $isUseCache = true)
-    {
-        $statementType = $query->getStatementType();
-        if ($statementType == strtolower(Query::SQL_STATEMENT_SELECT) && !$isUseCache) {
-            return new Data($this->$statementType($query));
-        }
-        list($sql, $binds) = $query->translate(Object::getName(get_class($this)));
-        $hash = crc32(Json::encode($sql)) . '/' . crc32(Json::encode($binds));
-        $cacheDataProvider = Data_Provider::getInstance(self::DEFAULT_CACHE_DATA_PROVIDER);
-        if ($statementType == strtolower(Query::SQL_STATEMENT_SELECT)) {
-//            $queryResultJson = $cacheDataProvider->get($hash);
-//            if ($queryResultJson) {
-//                return new Data(Json::decode($queryResultJson));
-//            }
-            $queryResult = $this->$statementType($query);
-            $cacheDataProvider->set($hash, Json::encode($queryResult));
-            return new Data($queryResult);
-        }
-        if (
-            $statementType == strtolower(Query::SQL_STATEMENT_INSERT) ||
-            $statementType == strtolower(Query::SQL_STATEMENT_UPDATE) ||
-            $statementType == strtolower(Query::SQL_STATEMENT_DELETE)) {
-            return new Data($this->$statementType($query));
-        }
-
-        throw new Exception('Unknown data source query statment type "' . $statementType . "");
-    }
-
-    /**
-     * @return string
-     */
-    public function getDataSourceKey()
-    {
-        return $this->_dataSourceKey;
-    }
-
-    /**
-     * @return Data_Provider
-     */
-    private function getCacheDataProvider()
-    {
-        if ($this->_cacheDataProvider !== null) {
-            return $this->_cacheDataProvider;
-        }
-
-        $dataProviderKey = $this->getConfig()->get(
-            $this->getDataSourceKey() . '/' . self::CONFIG_CACHE_DATA_PROVIDER
-        );
-
-        $this->_cacheDataProvider = isset($dataProviderKey)
-            ? Data_Provider::getInstance($dataProviderKey)
-            : Data_Provider::getInstance(self::DEFAULT_CACHE_DATA_PROVIDER);
-
-        return $this->_cacheDataProvider;
+        return Object::getName(get_class($this));
     }
 
     /**
@@ -132,30 +95,12 @@ abstract class Data_Source
         return $this->_sourceDataProvider;
     }
 
-    public static function getDefault()
-    {
-        return self::getInstance(Ice::getEnvironment()->get('dataProviderKeys/' . __CLASS__));
-    }
-
     /**
-     * @param $dataSourceKey // example: 'Mysqli:production/scheme'
-     * @return Data_Source
+     * @return string
      */
-    public static function getInstance($dataSourceKey)
+    public function getDataSourceKey()
     {
-        if (isset(self::$_dataSources[$dataSourceKey])) {
-            return self::$_dataSources[$dataSourceKey];
-        }
-
-        $dataSourceClass = 'ice\data\source\\' . strstr($dataSourceKey, ':', true);
-        self::$_dataSources[$dataSourceKey] = new $dataSourceClass($dataSourceKey);
-
-        return self::$_dataSources[$dataSourceKey];
-    }
-
-    public static function getConfig()
-    {
-        return Config::getInstance(get_called_class());
+        return $this->_dataSourceKey;
     }
 
     /**
@@ -170,8 +115,31 @@ abstract class Data_Source
             $this->getSourceDataProvider()->setScheme($scheme);
         }
 
-
-
         return $this->getSourceDataProvider()->getConnection();
     }
-} 
+
+    /**
+     * @return Data_Provider
+     */
+    public function getCacheDataProvider()
+    {
+        if ($this->_cacheDataProvider !== null) {
+            return $this->_cacheDataProvider;
+        }
+
+        $dataProviderKey = $this->getConfig()->get(
+            $this->getDataSourceKey() . '/' . self::CONFIG_CACHE_DATA_PROVIDER
+        );
+
+        $this->_cacheDataProvider = isset($dataProviderKey)
+            ? Data_Provider::getInstance($dataProviderKey)
+            : Data_Provider::getInstance(self::DEFAULT_CACHE_DATA_PROVIDER);
+
+        return $this->_cacheDataProvider;
+    }
+
+    public static function getConfig()
+    {
+        return Config::getInstance(get_called_class());
+    }
+}

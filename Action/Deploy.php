@@ -1,8 +1,8 @@
 <?php
 namespace ice\action;
 
-use ice\core\Action;
 use ice\core\action\Cli;
+use ice\core\Action;
 use ice\core\Action_Context;
 use ice\Exception;
 

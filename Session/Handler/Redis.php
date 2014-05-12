@@ -51,6 +51,20 @@ class Session_Handler_Redis implements SessionHandlerInterface
     }
 
     /**
+     * @return Redis
+     */
+    public static function getDataProvider()
+    {
+        if (self::$_dataProvider !== null) {
+            return self::$_dataProvider;
+        }
+
+        self::$_dataProvider = IcEngine::dataProviderManager()->get(self::DATA_PROVIDER_KEY);
+
+        return self::$_dataProvider;
+    }
+
+    /**
      * PHP >= 5.4.0<br/>
      * Cleanup old sessions
      * @link http://php.net/manual/en/sessionhandlerinterafce.gc.php
@@ -120,19 +134,5 @@ class Session_Handler_Redis implements SessionHandlerInterface
     public function write($session_id, $session_data)
     {
         self::getDataProvider()->set($session_id, $session_data, $this->maxLifeTime);
-    }
-
-    /**
-     * @return Redis
-     */
-    public static function getDataProvider()
-    {
-        if (self::$_dataProvider !== null) {
-            return self::$_dataProvider;
-        }
-
-        self::$_dataProvider = IcEngine::dataProviderManager()->get(self::DATA_PROVIDER_KEY);
-
-        return self::$_dataProvider;
     }
 }

@@ -300,7 +300,7 @@ if (typeof jQuery === 'undefined') {
         this.interval && clearInterval(this.interval)
 
         this.options.interval
-            && !this.paused
+        && !this.paused
         && (this.interval = setInterval($.proxy(this.next, this), this.options.interval))
 
         return this
@@ -1363,7 +1363,7 @@ if (typeof jQuery === 'undefined') {
         var o = this.options
 
         title = $e.attr('data-original-title')
-            || (typeof o.title == 'function' ? o.title.call($e[0]) : o.title)
+        || (typeof o.title == 'function' ? o.title.call($e[0]) : o.title)
 
         return title
     }
@@ -1503,7 +1503,7 @@ if (typeof jQuery === 'undefined') {
         var o = this.options
 
         return $e.attr('data-content')
-            || (typeof o.content == 'function' ?
+        || (typeof o.content == 'function' ?
             o.content.call($e[0]) :
             o.content)
     }
@@ -1572,8 +1572,8 @@ if (typeof jQuery === 'undefined') {
         this.$scrollElement = this.$element.on('scroll.bs.scroll-spy.data-api', process)
         this.options = $.extend({}, ScrollSpy.DEFAULTS, options)
         this.selector = (this.options.target
-            || ((href = $(element).attr('href')) && href.replace(/.*(?=#[^\s]+$)/, '')) //strip for ie7
-            || '') + ' .nav li > a'
+        || ((href = $(element).attr('href')) && href.replace(/.*(?=#[^\s]+$)/, '')) //strip for ie7
+        || '') + ' .nav li > a'
         this.offsets = $([])
         this.targets = $([])
         this.activeTarget = null
@@ -1601,9 +1601,9 @@ if (typeof jQuery === 'undefined') {
                 var $href = /^#./.test(href) && $(href)
 
                 return ($href
-                    && $href.length
-                    && $href.is(':visible')
-                    && [
+                && $href.length
+                && $href.is(':visible')
+                && [
                     [ $href[offsetMethod]().top + (!$.isWindow(self.$scrollElement.get(0)) && self.$scrollElement.scrollTop()), href ]
                 ]) || null
             })
@@ -1635,8 +1635,8 @@ if (typeof jQuery === 'undefined') {
 
         for (i = offsets.length; i--;) {
             activeTarget != targets[i]
-                && scrollTop >= offsets[i]
-                && (!offsets[i + 1] || scrollTop <= offsets[i + 1])
+            && scrollTop >= offsets[i]
+            && (!offsets[i + 1] || scrollTop <= offsets[i + 1])
             && this.activate(targets[i])
         }
     }

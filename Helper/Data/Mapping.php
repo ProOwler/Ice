@@ -11,7 +11,8 @@ class Data_Mapping
         return \ice\core\Data_Mapping::getInstance()->getModelClasses()[$modelClass];
     }
 
-    public static function syncConfig() {
+    public static function syncConfig()
+    {
         $dataSchemeTableNames = array_keys(Data_Source::getDefault()->getDataScheme());
         $dataMappingConfigData = [];
 

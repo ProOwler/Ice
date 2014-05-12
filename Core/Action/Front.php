@@ -7,7 +7,6 @@ use ice\core\Action;
 use ice\core\Action_Context;
 use ice\core\Model;
 use ice\data\provider\Router;
-use ice\Ice;
 use ice\view\render\Php;
 
 /**
@@ -20,18 +19,8 @@ class Front extends Action implements View
 {
     const LEGACY_CONTENT = 'content';
 
-    /**
-     * Initialization action context
-     *
-     * @return Action_Context
-     */
-    protected function init()
-    {
-        $actionContext = parent::init();
-        $actionContext->setViewRenderClass(Php::VIEW_RENDER_PHP_CLASS);
-        $actionContext->addDataProviderKeys(Router::getDefaultKey());
-        return $actionContext;
-    }
+    protected $viewRenderClass = Php::VIEW_RENDER_PHP_CLASS;
+    protected $dataProviderKeys = Router::DEFAULT_KEY;
 
     /**
      * Run action
@@ -45,9 +34,7 @@ class Front extends Action implements View
         $params = $input['params'];
         $params['actions'] = $input['actions'];
 
-        $layout =  $input['layout'];
-
-        $action = $layout['action'];
+        $layout = $input['layout'];
 
         if (isset($layout['template'])) {
             $params['template'] = $layout['template'];
@@ -56,6 +43,8 @@ class Front extends Action implements View
         if (isset($layout['viewRender'])) {
             $params['viewRender'] = $layout['viewRender'];
         }
+
+        $action = $layout['action'];
 
         /**
          * Legacy support

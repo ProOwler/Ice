@@ -6,11 +6,10 @@ use ice\core\Action;
 use ice\core\action\View;
 use ice\core\Action_Context;
 use ice\core\Data_Provider;
-use ice\helper\Dir;
-use ice\helper\Json;
 use ice\core\Loader;
 use ice\core\Model;
 use ice\data\provider\Router;
+use ice\helper\Dir;
 use ice\Ice;
 use ice\view\render\Php;
 use JSMin;
@@ -23,11 +22,8 @@ use JSMin;
  */
 class Html_Head_Resources extends Action implements View
 {
-    protected $layout = '';
-
     const RESOURCE_TYPE_JS = 'js';
     const RESOURCE_TYPE_CSS = 'css';
-
     public static $config = [
         'Ice' => [
             'jquery' => [
@@ -48,14 +44,12 @@ class Html_Head_Resources extends Action implements View
         ]
     ];
 
+    protected $viewRenderClass = Php::VIEW_RENDER_PHP_CLASS;
+    protected $dataProviderKeys = Router::DEFAULT_KEY;
+
     public static function appendJs($resource)
     {
         self::append(self::RESOURCE_TYPE_JS, $resource);
-    }
-
-    public static function appendCss($resource)
-    {
-        self::append(self::RESOURCE_TYPE_CSS, $resource);
     }
 
     private static function append($resourceType, $resource)
@@ -76,21 +70,9 @@ class Html_Head_Resources extends Action implements View
         $dataProvider->set($resourceType, $customResources);
     }
 
-    /**
-     * Initialization action context
-     *
-     * @return Action_Context
-     */
-    protected function init()
+    public static function appendCss($resource)
     {
-        $actionContext = parent::init();
-        $actionContext->setViewRenderClass(Php::VIEW_RENDER_PHP_CLASS);
-
-        /** @var Action $actionClass */
-        $actionClass = self::getClass();
-
-        $actionContext->addDataProviderKeys([Router::getDefaultKey(), $actionClass::getRegistryDataProviderKey()]);
-        return $actionContext;
+        self::append(self::RESOURCE_TYPE_CSS, $resource);
     }
 
     /**
@@ -132,8 +114,8 @@ class Html_Head_Resources extends Action implements View
                             'source' => $source . ltrim($resource, '-'),
                             'resource' => $jsResource,
                             'url' => $resourceItem['path']
-                                    ? '/' . $res . $resourceKey . '.pack.js'
-                                    : '/' . $moduleName . '/javascript.pack.js',
+                                ? '/' . $res . $resourceKey . '.pack.js'
+                                : '/' . $moduleName . '/javascript.pack.js',
                             'pack' => $resource[0] != '-'
                         ];
                 }
@@ -144,8 +126,8 @@ class Html_Head_Resources extends Action implements View
                             'source' => $source . ltrim($resource, '-'),
                             'resource' => $cssResource,
                             'url' => $resourceItem['path']
-                                    ? '/' . $res . $resourceKey . '.pack.css'
-                                    : '/' . $moduleName . '/style.pack.css',
+                                ? '/' . $res . $resourceKey . '.pack.css'
+                                : '/' . $moduleName . '/style.pack.css',
                             'pack' => $resource[0] != '-'
                         ];
                 }

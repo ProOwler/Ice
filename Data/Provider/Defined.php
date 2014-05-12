@@ -9,28 +9,6 @@ class Defined extends Data_Provider
 {
     public static $connections = [];
 
-    /**
-     * @param $connection
-     * @return boolean
-     */
-    protected function connect(&$connection)
-    {
-        /** @var Model $modelName */
-        $modelName = $this->getScheme();
-        $connection = $modelName::getDefinedConfig()->gets();
-        return !empty($connection);
-    }
-
-    /**
-     * @param $connection
-     * @return boolean
-     */
-    protected function close(&$connection)
-    {
-        $connection = null;
-        return true;
-    }
-
     public function get($key = null)
     {
         throw new Exception('Implement get() method.');
@@ -59,6 +37,28 @@ class Defined extends Data_Provider
     public function flushAll()
     {
         throw new Exception('Implement flushAll() method.');
+    }
+
+    /**
+     * @param $connection
+     * @return boolean
+     */
+    protected function connect(&$connection)
+    {
+        /** @var Model $modelName */
+        $modelName = $this->getScheme();
+        $connection = $modelName::getDefinedConfig()->gets();
+        return !empty($connection);
+    }
+
+    /**
+     * @param $connection
+     * @return boolean
+     */
+    protected function close(&$connection)
+    {
+        $connection = null;
+        return true;
     }
 
     /**

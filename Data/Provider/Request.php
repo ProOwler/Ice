@@ -3,10 +3,11 @@ namespace ice\data\provider;
 
 use ice\core\Data_Provider;
 use ice\Exception;
-use Locale;
 
 class Request extends Data_Provider
 {
+    const DEFAULT_KEY = 'Request:http/default';
+
     public static $connections = [];
 
     public static function getInstance($dataProviderKey = null)
@@ -21,7 +22,7 @@ class Request extends Data_Provider
 
     public static function getDefaultKey()
     {
-        return \ice\core\Request::DEFAULT_DATA_PROVIDER_KEY;
+        return self::DEFAULT_KEY;
     }
 
     public function get($key = null)

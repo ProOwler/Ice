@@ -16,25 +16,13 @@ class User extends Model
     private static $_user = null;
 
     /**
-     * Устанавливаем текущего юзера
+     * Является ли пользователь гостем или автоирзован на сайте
      *
-     * @param User $user
+     * @return bool
      */
-    public static function setCurrent(User $user)
+    public static function isGuest()
     {
-        Session::getCurrent()->switchUser($user);
-        self::$_user = $user;
-    }
-
-    public static function getGuest()
-    {
-        $user = User::getModel(User::GUEST_USER_ID, '/pk');
-
-        if ($user) {
-            return $user;
-        }
-
-        return User::getNewUser(User::GUEST_USER_NAME, User::GUEST_USER_ID);
+        return self::getCurrent()->getPk() == self::GUEST_USER_ID;
     }
 
     /**
@@ -68,6 +56,17 @@ class User extends Model
         return self::$_user;
     }
 
+    public static function getGuest()
+    {
+        $user = User::getModel(User::GUEST_USER_ID, '/pk');
+
+        if ($user) {
+            return $user;
+        }
+
+        return User::getNewUser(User::GUEST_USER_NAME, User::GUEST_USER_ID);
+    }
+
     public static function getNewUser($user_name, $user_pk = null)
     {
         return User::create(
@@ -79,13 +78,14 @@ class User extends Model
     }
 
     /**
-     * Является ли пользователь гостем или автоирзован на сайте
+     * Устанавливаем текущего юзера
      *
-     * @return bool
+     * @param User $user
      */
-    public static function isGuest()
+    public static function setCurrent(User $user)
     {
-        return self::getCurrent()->getPk() == self::GUEST_USER_ID;
+        Session::getCurrent()->switchUser($user);
+        self::$_user = $user;
     }
 
     /**
@@ -98,6 +98,16 @@ class User extends Model
         return (bool)$this->getRole(self::ROLE_ADMIN);
     }
 
+    public function getRole($delegate_name)
+    {
+        $roleCollection = $this->getRoleCollection();
+
+        $roleCollection->getQuery()
+            ->eq('/delegate_name', $delegate_name);
+
+        return $roleCollection->count() ? $roleCollection->first() : null;
+    }
+
     public function getRoleCollection()
     {
         $roleCollection = Role::getCollection();
@@ -107,16 +117,6 @@ class User extends Model
             ->eq('User_Role_Link.user__fk', $this->getPk());
 
         return $roleCollection;
-    }
-
-    public function getRole($delegate_name)
-    {
-        $roleCollection = $this->getRoleCollection();
-
-        $roleCollection->getQuery()
-            ->eq('/delegate_name', $delegate_name);
-
-        return $roleCollection->count() ? $roleCollection->first() : null;
     }
 
     /**

@@ -73,6 +73,14 @@ class JSMin
     protected $keptComment = '';
 
     /**
+     * @param string $input
+     */
+    public function __construct($input)
+    {
+        $this->input = $input;
+    }
+
+    /**
      * Minify Javascript.
      *
      * @param string $js Javascript to be minified
@@ -83,14 +91,6 @@ class JSMin
     {
         $jsmin = new JSMin($js);
         return $jsmin->min();
-    }
-
-    /**
-     * @param string $input
-     */
-    public function __construct($input)
-    {
-        $this->input = $input;
     }
 
     /**
@@ -269,35 +269,6 @@ class JSMin
     }
 
     /**
-     * @return bool
-     */
-    protected function isRegexpLiteral()
-    {
-        if (false !== strpos("(,=:[!&|?+-~*{;", $this->a)) {
-            // we obviously aren't dividing
-            return true;
-        }
-        if ($this->a === ' ' || $this->a === "\n") {
-            $length = strlen($this->output);
-            if ($length < 2) { // weird edge case
-                return true;
-            }
-            // you can't divide a keyword
-            if (preg_match('/(?:case|else|in|return|typeof)$/', $this->output, $m)) {
-                if ($this->output === $m[0]) { // odd but could happen
-                    return true;
-                }
-                // make sure it's a keyword, not end of an identifier
-                $charBeforeKeyword = substr($this->output, $length - strlen($m[0]) - 1, 1);
-                if (!$this->isAlphaNum($charBeforeKeyword)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    /**
      * Return the next character from stdin. Watch out for lookahead. If the character is a control character,
      * translate it to a space or linefeed.
      *
@@ -337,6 +308,29 @@ class JSMin
     }
 
     /**
+     * Get the next character, skipping over comments. Some comments may be preserved.
+     *
+     * @return string
+     */
+    protected function next()
+    {
+        $get = $this->get();
+        if ($get === '/') {
+            switch ($this->peek()) {
+                case '/':
+                    $this->consumeSingleLineComment();
+                    $get = "\n";
+                    break;
+                case '*':
+                    $this->consumeMultipleLineComment();
+                    $get = ' ';
+                    break;
+            }
+        }
+        return $get;
+    }
+
+    /**
      * Get next char (without getting it). If is ctrl character, translate to a space or newline.
      *
      * @return string
@@ -345,18 +339,6 @@ class JSMin
     {
         $this->lookAhead = $this->get();
         return $this->lookAhead;
-    }
-
-    /**
-     * Return true if the character is a letter, digit, underscore, dollar sign, or non-ASCII character.
-     *
-     * @param string $c
-     *
-     * @return bool
-     */
-    protected function isAlphaNum($c)
-    {
-        return (preg_match('/^[a-z0-9A-Z_\\$\\\\]$/', $c) || ord($c) > 126);
     }
 
     /**
@@ -416,26 +398,44 @@ class JSMin
     }
 
     /**
-     * Get the next character, skipping over comments. Some comments may be preserved.
-     *
-     * @return string
+     * @return bool
      */
-    protected function next()
+    protected function isRegexpLiteral()
     {
-        $get = $this->get();
-        if ($get === '/') {
-            switch ($this->peek()) {
-                case '/':
-                    $this->consumeSingleLineComment();
-                    $get = "\n";
-                    break;
-                case '*':
-                    $this->consumeMultipleLineComment();
-                    $get = ' ';
-                    break;
+        if (false !== strpos("(,=:[!&|?+-~*{;", $this->a)) {
+            // we obviously aren't dividing
+            return true;
+        }
+        if ($this->a === ' ' || $this->a === "\n") {
+            $length = strlen($this->output);
+            if ($length < 2) { // weird edge case
+                return true;
+            }
+            // you can't divide a keyword
+            if (preg_match('/(?:case|else|in|return|typeof)$/', $this->output, $m)) {
+                if ($this->output === $m[0]) { // odd but could happen
+                    return true;
+                }
+                // make sure it's a keyword, not end of an identifier
+                $charBeforeKeyword = substr($this->output, $length - strlen($m[0]) - 1, 1);
+                if (!$this->isAlphaNum($charBeforeKeyword)) {
+                    return true;
+                }
             }
         }
-        return $get;
+        return false;
+    }
+
+    /**
+     * Return true if the character is a letter, digit, underscore, dollar sign, or non-ASCII character.
+     *
+     * @param string $c
+     *
+     * @return bool
+     */
+    protected function isAlphaNum($c)
+    {
+        return (preg_match('/^[a-z0-9A-Z_\\$\\\\]$/', $c) || ord($c) > 126);
     }
 }
 

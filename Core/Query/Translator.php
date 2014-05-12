@@ -1,31 +1,22 @@
 <?php
 namespace ice\core;
 
-use ice\helper\Json;
+use ice\helper\Object;
 use ice\Ice;
 
 abstract class Query_Translator
 {
-    abstract protected function select(Query &$query);
-
-    abstract protected function insert(Query &$query);
-
-    abstract protected function update(Query &$query);
-
-    abstract protected function delete(Query &$query);
-
-    public function translate(Query &$query)
-    {
-        $statementType = $query->getStatementType();
-       return $this->$statementType($query);
-    }
-
     /**
-     * @param $className
+     * @param null $name
      * @return Query_Translator
      */
-    public static function getInstance($className)
+    public static function getInstance($name = null)
     {
+        /** @var Validator $class */
+        $className = $name
+            ? Object::getClassByClassShortName(__CLASS__, $name)
+            : get_called_class();
+
         $dataProvider = Data_Provider::getInstance(Ice::getEnvironment()->get('dataProviderKeys/' . __CLASS__));
         $queryTranslator = $dataProvider->get($className);
         if ($queryTranslator) {
@@ -35,4 +26,6 @@ abstract class Query_Translator
         $dataProvider->set($className, $queryTranslator);
         return $queryTranslator;
     }
+
+    abstract public function translate(Query $query);
 }

@@ -15,17 +15,7 @@ use ice\view\render\Php;
  */
 class Http_Status_500 extends Action implements View
 {
-    /**
-     * Initialization action context
-     *
-     * @return Action_Context
-     */
-    protected function init()
-    {
-        $actionContext = parent::init();
-        $actionContext->setViewRenderClass(Php::VIEW_RENDER_PHP_CLASS);
-        return $actionContext;
-    }
+    protected $viewRenderClass = Php::VIEW_RENDER_PHP_CLASS;
 
     /**
      * Run action

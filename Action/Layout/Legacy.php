@@ -14,17 +14,7 @@ use ice\view\render\Smarty;
  */
 class Layout_Legacy extends Legacy implements View
 {
-    /**
-     * Initialization action context
-     *
-     * @return Action_Context
-     */
-    protected function init()
-    {
-        $actionContext = parent::init();
-        $actionContext->setViewRenderClass(Smarty::VIEW_RENDER_SMARTY_CLASS);
-        return $actionContext;
-    }
+    protected $viewRenderClass = Smarty::VIEW_RENDER_SMARTY_CLASS;
 
     /**
      * Run action

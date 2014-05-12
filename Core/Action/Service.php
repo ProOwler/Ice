@@ -25,6 +25,46 @@ abstract class Service extends Action implements Cli, Factory
         return $actionServiceName::get();
     }
 
+    public function isRunStatus()
+    {
+        $status = $this->getStatus();
+        if ($status == Action_Service::STATUS_OFF) {
+            return false;
+        }
+
+        if ($status != Action_Service::STATUS_RUN) {
+            $this->setStatus(Action_Service::STATUS_RUN);
+        }
+
+        return true;
+    }
+
+    public function getStatus()
+    {
+        return $this->getDataProvider()->get(self::KEY_STATUS);
+    }
+
+    protected function getDataProvider()
+    {
+        if ($this->_dataProvider !== null) {
+            return $this->_dataProvider;
+        }
+
+        $this->_dataProvider = Data_Provider_Manager::get($this->getDataProviderName());
+
+        return $this->_dataProvider;
+    }
+
+    protected function getDataProviderName()
+    {
+        return $this->getConfig()->get('dataProviderName');
+    }
+
+    public function setStatus($status)
+    {
+        $this->getDataProvider()->set(self::KEY_STATUS, $status);
+    }
+
     protected function getActionService(array &$input)
     {
         if (!isset($input['name'])) {
@@ -42,45 +82,5 @@ abstract class Service extends Action implements Cli, Factory
         unset($input['name']);
 
         return $actionService;
-    }
-
-    protected function getDataProviderName()
-    {
-        return $this->getConfig()->get('dataProviderName');
-    }
-
-    protected function getDataProvider()
-    {
-        if ($this->_dataProvider !== null) {
-            return $this->_dataProvider;
-        }
-
-        $this->_dataProvider = Data_Provider_Manager::get($this->getDataProviderName());
-
-        return $this->_dataProvider;
-    }
-
-    public function getStatus()
-    {
-        return $this->getDataProvider()->get(self::KEY_STATUS);
-    }
-
-    public function setStatus($status)
-    {
-        $this->getDataProvider()->set(self::KEY_STATUS, $status);
-    }
-
-    public function isRunStatus()
-    {
-        $status = $this->getStatus();
-        if ($status == Action_Service::STATUS_OFF) {
-            return false;
-        }
-
-        if ($status != Action_Service::STATUS_RUN) {
-            $this->setStatus(Action_Service::STATUS_RUN);
-        }
-
-        return true;
     }
 }

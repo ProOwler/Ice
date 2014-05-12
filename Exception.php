@@ -2,8 +2,6 @@
 namespace ice;
 
 use ErrorException;
-use ice\core\Config;
-use ice\core\Request;
 
 /**
  * Class Exception
@@ -42,7 +40,7 @@ class Exception extends ErrorException
 //        $message = $config->get($errstr . '/' . Request::locale(), false);
 
 //        if (!$message) {
-            $message = $errstr;
+        $message = $errstr;
 //        }
 
         $debug = debug_backtrace();

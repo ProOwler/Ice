@@ -15,17 +15,7 @@ use ice\view\render\Php;
 
 class Main extends Action implements View
 {
-    /**
-     * Initialization action context
-     *
-     * @return Action_Context
-     */
-    protected function init()
-    {
-        $actionContext = parent::init();
-        $actionContext->setViewRenderClass(Php::VIEW_RENDER_PHP_CLASS);
-        return $actionContext;
-    }
+    protected $viewRenderClass = Php::VIEW_RENDER_PHP_CLASS;
 
     /**
      * Run action
@@ -36,6 +26,6 @@ class Main extends Action implements View
      */
     protected function run(array $input, Action_Context &$actionContext)
     {
-        return ['welcome'=> 'Hello world!', 'enjoy' => 'Ice is Great!!!'];
+        return ['welcome' => 'Hello world!', 'enjoy' => 'Ice is Great!!!'];
     }
 }

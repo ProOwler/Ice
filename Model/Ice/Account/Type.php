@@ -1,6 +1,7 @@
 <?php
 namespace ice\model\ice;
 
+use ice\core\Config;
 use ice\core\model\Factory;
 use ice\core\Validator;
 
@@ -29,10 +30,9 @@ abstract class Account_Type extends Factory
      */
     public function check(array $data, $validatorName)
     {
-        $dataValidatorName = 'ice\validator\\' . $this->getAccountTypeName() . '_' . $validatorName;
-        return Validator::create($dataValidatorName)
-            ->setData($data)
-            ->validate();
+        $config = Config::getInstance('ice\validator\\' . $this->getAccountTypeName() . '_' . $validatorName);
+
+        return Validator::validateByScheme($data, $config->get());
     }
 
     public function getAccountTypeName()

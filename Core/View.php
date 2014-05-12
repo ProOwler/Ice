@@ -1,7 +1,6 @@
 <?php
 namespace ice\core;
 
-use ice\helper\Object;
 use ice\Exception;
 use ice\Ice;
 
@@ -13,39 +12,12 @@ use ice\Ice;
  */
 class View
 {
-    private $_viewRenderClass = null;
-    private $_actionName = null;
-    private $_template = '';
-    private $_layout = null;
-    private $_data = [];
-    private $_view = null;
+    private $_viewData = [];
+    private $_result = null;
 
-    public function __construct($actionClass, $layout)
+    public function __construct(array $viewData)
     {
-        $this->_actionName = Object::getName($actionClass);
-        $this->_layout = $layout;
-    }
-
-    public function getTemplate()
-    {
-        if ($this->_template === null) {
-            $this->_template = $this->_actionName;
-        }
-
-        return str_replace(array('_', '::'), '/', $this->_template);
-    }
-
-    public function setTemplate($template)
-    {
-        $this->_template = $template;
-    }
-
-    /**
-     * @param string $layout
-     */
-    public function setLayout($layout)
-    {
-        $this->_layout = $layout;
+        $this->_viewData = $viewData;
     }
 
     /**
@@ -53,19 +25,68 @@ class View
      */
     public function getLayout()
     {
-        if ($this->_layout === null) {
-            $this->_layout = 'div#' . $this->_actionName . '{$view}';
+        if (!isset($this->_viewData['layout'])) {
+            $this->_viewData['layout'] = 'div#' . $this->_viewData['actionName'] . '{$view}';
         }
 
-        return $this->_layout;
+        return $this->_viewData['layout'];
     }
 
-    /**
-     * @param null $viewRenderClass
-     */
-    public function setViewRenderClass($viewRenderClass)
+    public function display()
     {
-        $this->_viewRenderClass = $viewRenderClass;
+        echo $this->fetch();
+        return;
+    }
+
+    public function fetch()
+    {
+        if ($this->_result != null) {
+            return $this->_result;
+        }
+
+        $template = $this->getTemplate();
+
+        if (empty($template)) {
+            $this->_result = '';
+            return $this->_result;
+        }
+
+        $hash = crc32(serialize($this->_viewData['data']));
+
+        $dataProvider = Data_Provider::getInstance(Ice::getEnvironment()->get('dataProviderKeys/' . __CLASS__));
+
+        $this->_result = $dataProvider->get($hash);
+
+        if ($this->_result) {
+            return $this->_result;
+        }
+
+        /** @var View_Render $viewRenderClass */
+        $viewRenderClass = $this->getViewRenderClass();
+
+        $ext = $viewRenderClass::TEMPLATE_EXTENTION;
+
+        array_unshift(View_Render::$templates, $template . $ext);
+
+        try {
+            $this->_result = $viewRenderClass::getInstance()->fetch($template, $this->_viewData['data'], $ext);
+            $dataProvider->set($hash, $this->_result);
+        } catch (\Exception $e) {
+            $this->_result = Logger::getMessageView(new Exception('Fetch template "' . $template . $ext . '" failed', [], $e));
+        }
+
+        array_shift(View_Render::$templates);
+
+        return $this->_result;
+    }
+
+    public function getTemplate()
+    {
+        if (!isset($this->_viewData['template'])) {
+            $this->_viewData['template'] = $this->_viewData['actionName'];
+        }
+
+        return str_replace(array('_', '::'), '/', $this->_viewData['template']);
     }
 
     /**
@@ -73,93 +94,15 @@ class View
      */
     public function getViewRenderClass()
     {
-        if ($this->_viewRenderClass) {
-            return $this->_viewRenderClass;
+        if (isset($this->_viewData['viewRenderClass'])) {
+            return $this->_viewData['viewRenderClass'];
         }
 
         return Ice::getConfig()->get('defaultViewRenderClass');
     }
 
-    /**
-     * @return array
-     */
-    public function getData()
-    {
-        return $this->_data;
-    }
-
-    public function setData(array $data)
-    {
-        $this->_data = $data;
-    }
-
-    /**
-     * Получить результат рендера шаблона
-     *
-     * @throws Exception
-     * @return string
-     */
-    public function render()
-    {
-        if ($this->_view !== null) {
-            return $this->_view;
-        }
-
-        try {
-            $this->_view = $this->fetch();
-        } catch (\Exception $e) {
-            $this->_view = '';
-            $viewRenderClass = $this->getViewRenderClass();
-            Logger::getMessage(
-                new Exception('Не удалось отрендерить шаблон "' . $this->_template . $viewRenderClass::TEMPLATE_EXTENTION . '"', $e)
-            );
-        }
-
-
-        return $this->_view;
-    }
-
-    private function fetch()
-    {
-        $template = $this->getTemplate();
-
-        if (empty($template)) {
-            return '';
-        }
-
-        /** @var View_Render $viewRenderClass */
-        $viewRenderClass = $this->getViewRenderClass();
-
-        return $viewRenderClass::getInstance()->fetch($template, $this->getData(), $viewRenderClass::TEMPLATE_EXTENTION);
-    }
-
-    public function assign($key, $value)
-    {
-        foreach ($value as $index => $val) {
-            if (is_int($index)) {
-                $this->_data[$key][$index] = $val;
-            } else {
-                $this->_data[$index] = $val;
-            }
-        }
-    }
-
-    public function display()
-    {
-        $template = $this->getTemplate();
-
-        if (empty($template)) {
-            return '';
-        }
-
-        /** @var View_Render $viewRenderClass */
-        $viewRenderClass = $this->getViewRenderClass();
-
-        $viewRenderClass::getInstance()->display($template, $this->getData(), $viewRenderClass::TEMPLATE_EXTENTION);
-    }
-
     public function __toString()
     {
-        return $this->render();
+        return $this->fetch();
     }
 }

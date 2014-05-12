@@ -1,9 +1,9 @@
 <?php
 namespace ice\model\ice;
 
-use ice\helper\Date;
-use ice\core\Request;
 use ice\core\model\Factory_Delegate;
+use ice\core\Request;
+use ice\helper\Date;
 
 class Account_Type_Login_Password extends Account_Type implements Factory_Delegate
 {

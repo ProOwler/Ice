@@ -7,18 +7,6 @@ final class Model_Repository
 
     private $_dataProvider = null;
 
-    /**
-     * @return Model_Repository
-     */
-    public static function getInstance()
-    {
-        static $inst = null;
-        if ($inst === null) {
-            $inst = new Model_Repository();
-        }
-        return $inst;
-    }
-
     private function __construct()
     {
         $this->_dataProvider = Data_Provider::getInstance(Model_Repository::DATA_PROVIDER_KEY);
@@ -29,6 +17,18 @@ final class Model_Repository
         $dataProvider = self::getInstance()->_dataProvider;
         $dataProvider->setScheme($scheme);
         return $dataProvider->get($pk);
+    }
+
+    /**
+     * @return Model_Repository
+     */
+    public static function getInstance()
+    {
+        static $inst = null;
+        if ($inst === null) {
+            $inst = new Model_Repository();
+        }
+        return $inst;
     }
 
     public static function set($scheme, $pk, $model)

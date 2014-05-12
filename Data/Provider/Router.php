@@ -10,22 +10,24 @@ use ice\Ice;
 
 class Router extends Data_Provider
 {
+    const DEFAULT_KEY = 'Router:route/default';
     public static $connections = [];
 
     public static function getDefaultKey()
     {
-        return 'Router:route/' . Request::uri();
+        return self::DEFAULT_KEY;
     }
 
     public function get($key = null)
     {
-        $url = $this->getScheme();
+        $scheme = $this->getScheme();
 
-        $dataProvider = Data_Provider::getInstance(Ice::getEnvironment()->get('dataProviderKeys/' . Route::getClass() . $url));
+        $url = $scheme == 'default' ? Request::uri() : $scheme;
+
+        $dataProvider = Data_Provider::getInstance(Ice::getEnvironment()->get('dataProviderKeys/' . Route::getClass()));
 
         /** @var Route $_route */
         $_route = $dataProvider->get($url);
-        $_route = null;
         if (!$_route) {
             foreach ($this->getConnection() as $routeConfig) {
                 $route = $routeConfig->gets();

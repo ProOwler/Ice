@@ -1,8 +1,8 @@
 <?php
 namespace ice\model\ice;
 
-use ice\core\Request;
 use ice\core\Model;
+use ice\core\Request;
 use ice\Exception;
 
 class Account extends Model

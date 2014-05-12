@@ -14,7 +14,8 @@ namespace ice\core;
  * @package ice\core
  * @author dp
  */
-abstract class Transformation {
+abstract class Transformation
+{
 
     /**
      * Return inctance of Transform class

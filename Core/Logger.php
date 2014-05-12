@@ -3,6 +3,7 @@ namespace ice\core;
 
 use ice\Exception;
 use ice\helper\Dir;
+use ice\helper\Memory;
 use ice\Ice;
 
 /**
@@ -82,7 +83,7 @@ class Logger
      */
     public static function errorHandler($errno, $errstr, $errfile, $errline, $errcontext)
     {
-        self::output(self::getMessage(new Exception($errstr, $errcontext, null, $errfile, $errline, $errno)));
+        self::output(self::getMessageView(new Exception($errstr, $errcontext, null, $errfile, $errline, $errno)));
     }
 
     /**
@@ -95,20 +96,37 @@ class Logger
         echo $message;
     }
 
+    public static function getMessageView(\Exception $exception)
+    {
+        return '<meta charset="utf-8"/>' .
+        '<div style="font-size: 10px;font-family: Tahoma, Geneva, sans-serif;">' .
+        self::getMessage($exception) .
+        '</div>';
+
+    }
+
     /**
      * Handle error exception
      *
      * @param \Exception $exception
+     * @return string
      */
     public static function getMessage(\Exception $exception)
     {
+        $message = '';
+
         $e = $exception->getPrevious();
 
         if ($e) {
-            self::getMessage($e);
+            $message .= self::getMessage($e);
         }
 
-        $delimetr = '[' . date('Y-m-d H:i:s') . '] host: ' . Request::host() . ' | ' . str_repeat('-', 100);
+        $delimetr = '[<i>' . date('Y-m-d H:i:s') . '</i>] ' .
+            'host: <b>' . Request::host() . '</b>' .
+            (!empty(Request::referer()) ? ' | referer: <b>' . Request::referer() . '</b>' : '') .
+            (!empty(View_Render::$templates) ? ' | template: <b>' . reset(View_Render::$templates) . '</b>' : '');
+
+        $message .= $delimetr . "\n";
 
         $errcontext = $exception instanceof Exception
             ? $exception->getErrContext()
@@ -124,29 +142,28 @@ class Logger
 
         Logger::log($delimetr . "\n" . implode("\n", $log) . "\n\n");
 
-        $message = '<meta charset="utf-8"/>';
-        $message .= '<div class="alert alert-danger" style="font-size: 10px;font-family: Tahoma, Geneva, sans-serif;">';
-        $message .= '<strong style="color: red;">' . $log['message'] . '</strong> <em style="color: blue;">' . $log['errPoint'] . '</em><br/>';
+        $message .= '<div class="alert alert-danger">';
+        $message .= '<strong style="color: red; text-decoration: underline;">' . $log['message'] . '</strong> <em style="color: blue;">' . $log['errPoint'] . '</em><br/>';
         if (!empty($errcontext)) {
-            $message .= '<a style="color:grey; text-decoration: none; border-bottom:1px dashed;" href="#" onclick="$(\'.errcontext\').show();">errcontext</a><br/>';
-            $message .= '<pre class="errcontext" style="color: green;/* display: none;*/">' . print_r(
+            $message .= '<a style="color:grey; text-decoration: none; border-bottom:1px dashed;" href="#" onclick="$(\'.errcontext\').show();">errcontext</a><br/>' . "\n";
+            $message .= '<pre class="errcontext" style="color: green;/* display: none;*/ font-size: 9px;">' . print_r(
                     $errcontext,
                     true
-                ) . '</pre>';
+                ) . '</pre>' . "\n";
         }
         $message .= nl2br($log['stackTrace'], true);
-        $message .= '</div>';
+        $message .= '</div>' . "\n";
 
         if (function_exists('fb')) {
-            fb($delimetr);
+            fb(strip_tags($delimetr));
             fb($log['message'] . $log['errPoint'], 'ERROR');
-            if (!empty($errcontext)) {
+            if (!empty($errcontext) && Memory::getVarSize($errcontext) < 3500) {
                 fb($errcontext, 'INFO');
             }
             fb(explode("\n", $log['stackTrace']), 'WARN');
         }
 
-        return $message;
+        return "\n" . $message;
     }
 
     /**
@@ -158,6 +175,6 @@ class Logger
     {
         $logDir = Ice::getRootPath() . 'log/' . Ice::getProject() . '/';
         $logFile = Dir::get($logDir) . 'error_' . date('Y-m-d') . '.log';
-        file_put_contents($logFile, $message, FILE_APPEND);
+        file_put_contents($logFile, strip_tags($message), FILE_APPEND);
     }
 }

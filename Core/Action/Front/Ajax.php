@@ -3,25 +3,15 @@ namespace ice\core\action;
 
 use ice\core\Action;
 use ice\core\Action_Context;
-use ice\helper\Object;
 use ice\core\View;
 use ice\data\provider\Request;
+use ice\helper\Object;
 use ice\view\render\Php;
 
-class Front_Ajax extends Action implements Ajax
+class Front_Ajax extends Action implements Ajax, \ice\core\action\View
 {
-    /**
-     * Initialization action context
-     *
-     * @return Action_Context
-     */
-    protected function init()
-    {
-        $actionContext = parent::init();
-        $actionContext->setViewRenderClass(Php::VIEW_RENDER_PHP_CLASS);
-        $actionContext->addDataProviderKeys(Request::getDefaultKey());
-        return $actionContext;
-    }
+    protected $viewRenderClass = Php::VIEW_RENDER_PHP_CLASS;
+    protected $dataProviderKeys = Request::DEFAULT_KEY;
 
     /**
      * Run action
@@ -65,7 +55,7 @@ class Front_Ajax extends Action implements Ajax
                 'back' => $data['back'],
                 'result' => [
                     'data' => $data[$action][0]->getData(),
-                    'html' => $data[$action][0]->render()
+                    'html' => $data[$action][0]->fetch()
                 ]
             ];
         }

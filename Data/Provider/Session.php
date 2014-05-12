@@ -8,6 +8,36 @@ class Session extends Data_Provider
 {
     public static $connections = [];
 
+    public function get($key = null)
+    {
+        return $key ? $this->getConnection()[$key] : $this->getConnection();
+    }
+
+    public function set($key, $value, $ttl = 3600)
+    {
+        throw new Exception('Implement set() method.');
+    }
+
+    public function delete($key)
+    {
+        throw new Exception('Implement delete() method.');
+    }
+
+    public function inc($key, $step = 1)
+    {
+        throw new Exception('Implement inc() method.');
+    }
+
+    public function dec($key, $step = 1)
+    {
+        throw new Exception('Implement dec() method.');
+    }
+
+    public function flushAll()
+    {
+        throw new Exception('Implement flushAll() method.');
+    }
+
     /**
      * @param $connection
      * @return boolean
@@ -40,35 +70,5 @@ class Session extends Data_Provider
     {
         unset($_SESSION);
         return true;
-    }
-
-    public function get($key = null)
-    {
-        return $key ? $this->getConnection()[$key] : $this->getConnection();
-    }
-
-    public function set($key, $value, $ttl = 3600)
-    {
-        throw new Exception('Implement set() method.');
-    }
-
-    public function delete($key)
-    {
-        throw new Exception('Implement delete() method.');
-    }
-
-    public function inc($key, $step = 1)
-    {
-        throw new Exception('Implement inc() method.');
-    }
-
-    public function dec($key, $step = 1)
-    {
-        throw new Exception('Implement dec() method.');
-    }
-
-    public function flushAll()
-    {
-        throw new Exception('Implement flushAll() method.');
     }
 }

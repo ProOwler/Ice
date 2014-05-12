@@ -21,30 +21,6 @@ class City extends Model
     private static $_city = null;
 
     /**
-     * Устанавливаем текущий город
-     *
-     * @param City $city
-     */
-    private static function setCurrent(City $city)
-    {
-        Session::getCurrent()->switchCity($city);
-        self::$_city = $city;
-    }
-
-    /**
-     * Получить город по умолчанию
-     *
-     * @return Model|null
-     */
-    public static function getDefault()
-    {
-        return City::getQuery()
-            ->eq('/translit', City::DEFAULT_TRANSLIT)
-            ->execute()
-            ->getModel();
-    }
-
-    /**
      * Получить текущий город
      *
      * @throws Page_Not_Found_Exception
@@ -106,6 +82,30 @@ class City extends Model
         return self::$_city;
     }
 
+    /**
+     * Получить город по умолчанию
+     *
+     * @return Model|null
+     */
+    public static function getDefault()
+    {
+        return City::getQuery()
+            ->eq('/translit', City::DEFAULT_TRANSLIT)
+            ->execute()
+            ->getModel();
+    }
+
+    /**
+     * Устанавливаем текущий город
+     *
+     * @param City $city
+     */
+    private static function setCurrent(City $city)
+    {
+        Session::getCurrent()->switchCity($city);
+        self::$_city = $city;
+    }
+
 
 //    /**
 //     * Установить в качестве текущего города произвольный город
@@ -154,10 +154,11 @@ class City extends Model
 //        return $this->city_translit;
 //    }
 //
+
     /**
      * Вернуть название города
      */
-    public function getName()
+    public function getCityName()
     {
         return $this->city_name ? $this->city_name : $this->city_name_en;
     }

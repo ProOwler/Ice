@@ -4,10 +4,6 @@ namespace ice\action;
 use ice\core\Action;
 use ice\core\action\Cli;
 use ice\core\Action_Context;
-use ice\core\Config;
-use ice\core\Data_Mapping;
-use ice\core\Data_Source;
-use ice\helper\Model;
 
 /**
  * Data mapping syncronization

@@ -8,24 +8,14 @@
 
 namespace ice\action;
 
-use ice\core\Action;
 use ice\core\action\View;
+use ice\core\Action;
 use ice\core\Action_Context;
 use ice\view\render\Php;
 
 class Title extends Action implements View
 {
-    /**
-     * Initialization action context
-     *
-     * @return Action_Context
-     */
-    protected function init()
-    {
-        $actionContext = parent::init();
-        $actionContext->setViewRenderClass(Php::VIEW_RENDER_PHP_CLASS);
-        return $actionContext;
-    }
+    protected $viewRenderClass = Php::VIEW_RENDER_PHP_CLASS;
 
     /**
      * Run action

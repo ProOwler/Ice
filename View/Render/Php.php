@@ -45,8 +45,7 @@ class Php extends View_Render
             require $templateName;
             $view = ob_get_clean();
         } catch (\Exception $e) {
-            Logger::getMessage(new Exception('Render error in template "' . $templateName . '"', [], $e));
-            $view = ob_get_clean();
+            $view = Logger::getMessageView(new Exception('Render error in template "' . $templateName . '"' . "\n" . ob_get_clean(), [], $e));
         }
         return $view;
     }

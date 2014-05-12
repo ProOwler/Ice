@@ -4,8 +4,8 @@ namespace ice\action;
 
 use ice\core\Action;
 use ice\core\Action_Context;
-use ice\helper\Object;
 use ice\core\View;
+use ice\helper\Object;
 
 /**
  * Authorization form

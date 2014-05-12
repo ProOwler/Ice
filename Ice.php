@@ -283,7 +283,7 @@ class Ice
         }
 
         self::$_modules = [];
-        foreach(self::getConfig()->gets('modules') as $moduleName => $modulePath) {
+        foreach (self::getConfig()->gets('modules') as $moduleName => $modulePath) {
             self::$_modules[$moduleName] = is_array($modulePath)
                 ? reset($modulePath)
                 : $modulePath;
@@ -314,7 +314,7 @@ class Ice
 
             $this->view = Front::call();
         } catch (\Exception $e) {
-            Logger::getMessage($e);
+            Logger::output(Logger::getMessageView($e));
         }
 
         return $this;
@@ -329,7 +329,7 @@ class Ice
      */
     public function flush()
     {
-        if (!$this->view instanceof View) {
+        if (!($this->view instanceof View)) {
             die($this->view);
         }
 

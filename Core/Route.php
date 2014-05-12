@@ -10,10 +10,17 @@ namespace ice\core;
 
 use ice\data\provider\Router;
 
-class Route {
+class Route
+{
 
-    public static function get() {
+    public static function get()
+    {
         return Router::getInstance()->get();
+    }
+
+    public static function getClass()
+    {
+        return __CLASS__;
     }
 
     public static function getConfig()
