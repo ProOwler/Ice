@@ -72,4 +72,5 @@ Directory structure
 
 Ice is Great!!!
 -------------------
+[github wiki](https://github.com/ifacesoft/Ice/wiki)
 [more info on iceframework.net](https://github.com/yiisoft/yii2/issues) (coming soon available)
