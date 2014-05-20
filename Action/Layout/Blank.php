@@ -10,8 +10,12 @@ use ice\view\render\Php;
 /**
  * Action with blank output
  *
+ * @see \ice\core\Action
+ * @see \ice\core\action\Layout
+ *
  * @package ice\action
- * @author dp
+ * @author dp <denis.a.shestakov@gmail.com>
+ * @since -0
  */
 class Layout_Blank extends Layout
 {

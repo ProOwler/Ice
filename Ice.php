@@ -1,4 +1,9 @@
 <?php
+/**
+ * @link http://www.iceframework.net/
+ * @copyright Copyright (c) 2014 Ifacesoft
+ * @license http://www.iceframework.net/license/
+ */
 namespace ice;
 
 use ice\core\action\Front;
@@ -9,21 +14,21 @@ use ice\core\Loader;
 use ice\core\Logger;
 use ice\core\Request;
 use ice\core\View;
+use ice\helper\File;
 
 /**
  * Class of Ice application
  *
- * Ice is a singleton)
- *
- * @todo Write documentation
- *
  * @link http://iceframework.net Ice home page @endlink
  *
  * @package ice
- * @author dp
+ * @author dp <denis.a.shestakov@gmail.com>
+ * @since -0
  */
 class Ice
 {
+    const INDEX = 'app.php';
+
     //! string Framework name
     const ENGINE = 'Ice';
 
@@ -109,6 +114,8 @@ class Ice
 
         require_once $this->getEnginePath() . 'Exception.php';
         require_once $this->getEnginePath() . 'Helper/Object.php';
+        require_once $this->getEnginePath() . 'Helper/Dir.php';
+        require_once $this->getEnginePath() . 'Helper/File.php';
         require_once $this->getEnginePath() . 'Core/Config.php';
         require_once $this->getEnginePath() . 'Core/Data/Provider.php';
         require_once $this->getEnginePath() . 'Data/Provider/Registry.php';
@@ -207,7 +214,7 @@ class Ice
         }
         unset($_config['environments']);
 
-        file_put_contents($configFileCache, '<?php' . "\n" . 'return ' . var_export($_config, true) . ';');
+        File::createData($configFileCache, $_config);
 
         self::$_config = new Config($_config, __CLASS__);
 

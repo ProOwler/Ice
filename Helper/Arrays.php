@@ -1,16 +1,15 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 21.03.14
- * Time: 17:58
- */
-
 namespace ice\helper;
-
 
 use ice\Exception;
 
+/**
+ * Helper for Arrays
+ *
+ * @package ice\helper
+ * @author dp <denis.a.shestakov@gmail.com>
+ * @since -0
+ */
 class Arrays
 {
     /**

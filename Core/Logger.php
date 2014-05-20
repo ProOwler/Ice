@@ -10,7 +10,7 @@ use ice\Ice;
  * Ice application logger
  *
  * @package ice\core
- * @author dp
+ * @author dp <denis.a.shestakov@gmail.com>
  */
 class Logger
 {

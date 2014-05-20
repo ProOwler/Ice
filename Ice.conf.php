@@ -4,7 +4,8 @@
  *
  * Sets default config params for ice application components
  *
- * @author dp
+ * @author dp <denis.a.shestakov@gmail.com>
+ * @since -0
  */
 
 if (!defined('OBJECT_CACHE')) {
@@ -15,6 +16,7 @@ if (!defined('STRING_CACHE')) {
 }
 
 return [
+    'defaultLayoutView' => null,
     'defaultLayoutAction' => 'ice\action\Layout_Main',
     'defaultViewRenderClass' => 'ice\view\render\Php',
     'modules' => [
@@ -65,39 +67,63 @@ return [
                 'ice\core\Cache' => STRING_CACHE . ':cache/tags',
                 'ice\core\View' => STRING_CACHE . ':cache/view',
             ],
-            'dataProviders' => [
-                OBJECT_CACHE . ':storage' => [],
-                'Defined:model' => [],
-                'Factory:model' => [],
-                'Redis:cache' => [
-                    'host' => 'localhost',
-                    'port' => 6379
-                ],
-                'File:cache' => [
-                    'path' => dirname(__DIR__) . '/cache/'
-                ],
-                'Request:http' => [],
-                'Cli:prompt' => [],
-                'Session:php' => [],
-                'Registry:view_render' => [],
-                'Registry:model_repository' => [],
-                'Registry:action' => [],
-                'Registry:registry' => [],
-                'Router:route' => [],
-                'Mysqli:default' => [
-                    'host' => 'localhost',
-                    'username' => 'root',
-                    'password' => '',
-                    'charset' => 'utf8'
-                ]
-            ]
         ],
         'test' => [
             'debug' => true,
         ],
-        'development' => []
+        'development' => [
+            'dataProviderKeys' => [
+                'ice\core\Loader' => 'Registry:storage/loader',
+                'ice\core\Action' => [
+                    'instance' => 'Registry:storage/action',
+                    'output' => 'Null:cache/action'
+                ],
+                'ice\core\Route' => 'Registry:storage/router',
+                'ice\core\Config' => 'Registry:storage/config',
+                'ice\core\View_Render' => 'Registry:storage/view_render',
+                'ice\core\Query_Translator' => 'Registry:storage/query_translator',
+                'ice\core\Query' => [
+                    'sql' => 'Null:cache/sql',
+                    'query' => 'Null:cache/query',
+                ],
+                'ice\core\Model_Mapping' => 'Registry:storage/model_mapping',
+                'ice\core\Data_Mapping' => 'Registry:storage/data_mapping',
+                'ice\core\Model_Scheme' => 'Registry:storage/model_scheme',
+                'ice\core\Validator' => 'Registry:storage/validator',
+                'ice\core\Cache' => 'Null:cache/tags',
+                'ice\core\View' => 'Null:cache/view',
+            ],
+        ]
     ],
     'viewRenders' => [
         'Php' => []
+    ],
+    'dataProviders' => [
+        'Apc:storage' => [],
+        'Registry:storage' => [],
+        'Defined:model' => [],
+        'Factory:model' => [],
+        'Redis:cache' => [
+            'host' => 'localhost',
+            'port' => 6379
+        ],
+        'File:cache' => [
+            'path' => dirname(__DIR__) . '/cache/'
+        ],
+        'Null:cache' => [],
+        'Request:http' => [],
+        'Cli:prompt' => [],
+        'Session:php' => [],
+        'Registry:view_render' => [],
+        'Registry:model_repository' => [],
+        'Registry:action' => [],
+        'Registry:registry' => [],
+        'Router:route' => [],
+        'Mysqli:default' => [
+            'host' => 'localhost',
+            'username' => 'root',
+            'password' => '',
+            'charset' => 'utf8'
+        ]
     ]
 ];

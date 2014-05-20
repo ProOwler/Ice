@@ -11,8 +11,12 @@ use ice\core\Action_Context;
  *
  * Flush session
  *
+ * @see \ice\core\Action
+ * @see \ice\core\action\Ajax
+ *
  * @package ice\action
- * @author dp
+ * @author dp <denis.a.shestakov@gmail.com>
+ * @since -0
  */
 class Account_Logout extends Action implements Ajax
 {

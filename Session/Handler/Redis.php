@@ -1,10 +1,7 @@
 <?php
 
 /**
- * Created by PhpStorm.
- * User: dp
- * Date: 21.04.14
- * Time: 16:43
+ * Implementation of session handler
  */
 class Session_Handler_Redis implements SessionHandlerInterface
 {

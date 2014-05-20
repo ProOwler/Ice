@@ -9,7 +9,8 @@ use ErrorException;
  * Exception of ice application
  *
  * @package ice
- * @author dp
+ * @author dp <denis.a.shestakov@gmail.com>
+ * @since -0
  */
 class Exception extends ErrorException
 {

@@ -1,13 +1,14 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 07.05.14
- * Time: 15:15
- */
 
 namespace ice\helper;
 
+/**
+ * Helper Query
+ *
+ * @package ice\helper
+ * @author dp <denis.a.shestakov@gmail.com>
+ * @since -0
+ */
 class Query
 {
     public static function convertWhereForFilter(\ice\core\Query $query)

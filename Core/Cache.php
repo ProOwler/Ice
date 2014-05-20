@@ -1,15 +1,16 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 11.05.14
- * Time: 20:49
- */
 
 namespace ice\core;
 
 use ice\Ice;
 
+/**
+ * Class Cache
+ *
+ * @package ice\core
+ * @author dp <denis.a.shestakov@gmail.com>
+ * @since -0
+ */
 class Cache
 {
     public static function validate($class, array $cacheTags, $time)

@@ -9,8 +9,13 @@ use ice\view\render\Smarty;
 /**
  * Legacy layout action
  *
+ * @see \ice\core\Action
+ * @see \ice\core\action\Legacy
+ * @see \ice\core\action\View
+ *
  * @package ice\action
- * @author dp
+ * @author dp <denis.a.shestakov@gmail.com>
+ * @since -0
  */
 class Layout_Legacy extends Legacy implements View
 {

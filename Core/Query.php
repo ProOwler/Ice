@@ -12,7 +12,7 @@ use ice\Ice;
  * Query bulider
  *
  * @package ice\core
- * @author dp
+ * @author dp <denis.a.shestakov@gmail.com>
  */
 class Query implements Cacheable
 {

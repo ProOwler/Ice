@@ -1,16 +1,16 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 20.03.14
- * Time: 20:33
- */
-
 namespace ice\core\model\collection;
 
 use ice\core\Data;
 use ice\core\Model;
 
+/**
+ * Iterator for model collection
+ *
+ * @package ice\core\model\collection
+ * @author dp <denis.a.shestakov@gmail.com>
+ * @since -0
+ */
 class Iterator extends Data
 {
 

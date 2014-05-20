@@ -24,6 +24,6 @@ class Front_Cli extends Action implements Cli, View
         $action = $input['action'];
         unset($input['action']);
 
-        $context->addAction($action, $input);
+        $context->addAction($action, $input, 'action');
     }
 }

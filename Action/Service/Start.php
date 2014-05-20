@@ -8,8 +8,12 @@ use ice\core\Action_Context;
 /**
  * Start service action
  *
+ * @see \ice\core\Action
+ * @see \ice\core\action\Service
+ *
  * @package ice\action
- * @author dp
+ * @author dp <denis.a.shestakov@gmail.com>
+ * @since -0
  */
 class Service_Start extends Service
 {

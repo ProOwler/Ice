@@ -69,7 +69,7 @@ class Emmet
      * @param array $vars
      * @return string
      */
-    static function translateElement($matches, $innerHtml = '', $vars = array())
+    private static function translateElement($matches, $innerHtml = '', $vars = array())
     {
 //        $indentString = ' ';
 //        $eol = PHP_EOL;
@@ -126,7 +126,7 @@ class Emmet
      * @param array $vars
      * @return string
      */
-    static function translateText($emmetText, $vars = array())
+    private static function translateText($emmetText, $vars = array())
     {
         $reEmmetTextVarReplace = '/[{][$](\w+)[}]/';
         $callback = function ($matches) use ($vars) {
@@ -146,7 +146,7 @@ class Emmet
      * @param int $counterValue Номер итерации в цикле.
      * @return string
      */
-    public static function translateBucks($emmet, $multiplierValue, $counterValue = 1)
+    private static function translateBucks($emmet, $multiplierValue, $counterValue = 1)
     {
         $reEmmetBucksReplace = '/([$]+)(@?(-?)(\d*))/';
         $callback = function ($matches) use ($multiplierValue, $counterValue) {

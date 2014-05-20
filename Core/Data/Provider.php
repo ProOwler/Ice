@@ -14,7 +14,7 @@ abstract class Data_Provider
     /** @var Data_Provider[] */
     private static $_dataProviders = [];
 
-    private $_index = null; // default || production
+    private $_index = null;
     private $_scheme = null;
     private $_options = null;
 
@@ -27,8 +27,8 @@ abstract class Data_Provider
     }
 
     /**
-     * @param $dataProviderKey // example: 'Redis:localhost/model'
-     * @throws \ice\Exception
+     * @param $dataProviderKey
+     * @throws Exception
      * @return Data_Provider
      */
     public static function getInstance($dataProviderKey = null)
@@ -76,7 +76,7 @@ abstract class Data_Provider
                 $dataProviderName,
                 $dataProviderIndex,
                 $dataProviderScheme,
-                Ice::getEnvironment()->gets('dataProviders/' . $index)
+                Ice::getConfig()->gets('dataProviders/' . $index)
             );
 
         return self::$_dataProviders[$dataProviderName][$dataProviderIndex][$dataProviderScheme];

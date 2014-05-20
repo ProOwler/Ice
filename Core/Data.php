@@ -14,7 +14,7 @@ use Serializable;
  * Class of data
  *
  * @package ice\core
- * @author dp
+ * @author dp <denis.a.shestakov@gmail.com>
  */
 class Data implements Iterator, ArrayAccess, Countable, Serializable
 {

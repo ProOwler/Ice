@@ -13,7 +13,7 @@ use ice\helper\Object;
  * Abstract core Class Model
  *
  * @package ice\core
- * @author dp
+ * @author dp <denis.a.shestakov@gmail.com>
  */
 abstract class Model
 {

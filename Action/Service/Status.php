@@ -9,7 +9,7 @@ use ice\core\Action_Context;
  * Show status service action
  *
  * @package ice\action
- * @author dp
+ * @author dp <denis.a.shestakov@gmail.com>
  */
 class Service_Status extends Service
 {

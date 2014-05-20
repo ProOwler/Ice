@@ -17,13 +17,20 @@ use JSMin;
 /**
  * Action of generation js and css for includes into html tag head (<script.. and <link..)
  *
+ * @see \ice\core\Action
+ * @see \ice\core\action\View
+ *
  * @package ice\action
- * @author dp
+ * @author dp <denis.a.shestakov@gmail.com>
+ * @since -0
  */
 class Html_Head_Resources extends Action implements View
 {
     const RESOURCE_TYPE_JS = 'js';
     const RESOURCE_TYPE_CSS = 'css';
+
+    protected $layout = '';
+
     public static $config = [
         'Ice' => [
             'jquery' => [

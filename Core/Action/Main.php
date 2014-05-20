@@ -11,7 +11,7 @@ use ice\view\render\Php;
  * Default action
  *
  * @package ice\core\action
- * @author dp
+ * @author dp <denis.a.shestakov@gmail.com>
  */
 class Main extends Action
 {

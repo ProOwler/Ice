@@ -8,8 +8,12 @@ use ice\core\Action_Context;
 /**
  * Action of synchronize model scheme
  *
+ * @see \ice\core\Action
+ * @see \ice\core\action\Cli
+ *
  * @package ice\action
- * @author dp
+ * @author dp <denis.a.shestakov@gmail.com>
+ * @since -0
  */
 class Model_Scheme_Sync extends Action implements Cli
 {

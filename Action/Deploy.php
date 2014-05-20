@@ -9,8 +9,12 @@ use ice\Exception;
 /**
  * Deploy ice application
  *
+ * @see \ice\core\Action
+ * @see \ice\core\action\Cli
+ *
  * @package ice\action
- * @author dp
+ * @author dp <denis.a.shestakov@gmail.com>
+ * @since -0
  */
 class Deploy extends Action implements Cli
 {

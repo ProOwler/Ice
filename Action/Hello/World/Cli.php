@@ -11,8 +11,12 @@ use ice\core\Action_Context;
  *
  * Test run cli action
  *
+ * @see \ice\core\Action
+ * @see \ice\core\action\Cli
+ *
  * @package ice\action
- * @author dp
+ * @author dp <denis.a.shestakov@gmail.com>
+ * @since -0
  */
 class Hello_World_Cli extends Action implements Cli
 {

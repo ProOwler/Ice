@@ -8,7 +8,7 @@ use ice\Exception;
  * Cli Service Action
  *
  * @package ice\core\action
- * @author dp
+ * @author dp <denis.a.shestakov@gmail.com>
  */
 abstract class Service extends Action implements Cli, Factory
 {

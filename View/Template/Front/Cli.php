@@ -1,1 +1,3 @@
+<?= $action ?>
+
 Cli action complete!!

@@ -1,15 +1,15 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 25.04.14
- * Time: 18:10
- */
-
 namespace ice\core;
 
 use ice\data\provider\Router;
 
+/**
+ * Class Route
+ *
+ * @package ice\core
+ * @author dp <denis.a.shestakov@gmail.com>
+ * @since -0
+ */
 class Route
 {
 

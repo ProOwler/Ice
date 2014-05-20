@@ -3,6 +3,7 @@ namespace ice\core;
 
 use ice\Exception;
 use ice\helper\Dir;
+use ice\helper\File;
 use ice\Ice;
 use Iterator;
 
@@ -10,7 +11,7 @@ use Iterator;
  * Config class
  *
  * @package ice\core
- * @author dp
+ * @author dp <denis.a.shestakov@gmail.com>
  */
 class Config implements Iterator
 {
@@ -57,9 +58,7 @@ class Config implements Iterator
 
         $fileName = Ice::getProjectPath() . 'Config/' . str_replace('_', '/', rtrim($filePath, '/')) . '.php';
 
-        Dir::get(dirname($fileName));
-
-        file_put_contents($fileName, '<?php' . "\n" . 'return ' . var_export($configData, true) . ';');
+        File::createData($fileName, $configData);
 
         return Config::getInstance($className, [], $postfix, true, false);
     }
@@ -187,14 +186,18 @@ class Config implements Iterator
                 throw new Exception('Could nof found config required param -> ' . $this->getConfigName() . ':' . $key);
             }
 
-            return (array)$param;
+            return $param;
         }
 
         $_key = substr($key, 0, $pos);
         $param = isset($config[$_key]) ? $config[$_key] : null;
 
-        if ($param === null && $isRequired) {
-            throw new Exception('Could nof found config required param -> ' . $this->getConfigName() . ':' . $key);
+        if ($param === null) {
+            if ($isRequired) {
+                throw new Exception('Could nof found config required param -> ' . $this->getConfigName() . ':' . $key);
+            } else {
+                return $param;
+            }
         }
 
         return $this->xpath($param, substr($key, $pos + 1), $isRequired);
@@ -223,13 +226,9 @@ class Config implements Iterator
         $params = null;
 
         try {
-            $params = $this->xpath($this->_config, $key, $isRequired);
+            $params = (array) $this->xpath($this->_config, $key, $isRequired);
         } catch (\Exception $e) {
             throw new Exception('Could nof found config params -> ' . $this->getConfigName() . ':' . $key, [], $e);
-        }
-
-        if (!is_array($params)) {
-            throw new Exception('Ожидается массив данных.', $params);
         }
 
         return $params;

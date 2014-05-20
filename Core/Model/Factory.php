@@ -4,7 +4,7 @@ namespace ice\core\model;
 use ice\core\Model;
 
 /**
- * @author dp
+ * @author dp <denis.a.shestakov@gmail.com>
  * @package Ice
  *
  */

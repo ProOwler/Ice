@@ -1,11 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 16.03.14
- * Time: 12:55
- */
-
 namespace ice\action;
 
 use ice\core\Action;
@@ -14,11 +7,13 @@ use ice\core\Action_Context;
 
 /**
  * Create action class
- *
- * @todo need implements
+
+ * @see \ice\core\Action
+ * @see \ice\core\action\Cli
  *
  * @package ice\action
- * @author dp
+ * @author dp <denis.a.shestakov@gmail.com>
+ * @since -0
  */
 class Create extends Action implements Cli
 {

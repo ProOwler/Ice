@@ -13,7 +13,7 @@ use ice\view\render\Php;
  * Entry point of app
  *
  * @package ice\core\action
- * @author dp
+ * @author dp <denis.a.shestakov@gmail.com>
  */
 class Front extends Action implements View
 {
@@ -21,6 +21,7 @@ class Front extends Action implements View
 
     protected $viewRenderClass = Php::VIEW_RENDER_PHP_CLASS;
     protected $dataProviderKeys = Router::DEFAULT_KEY;
+    protected $layout = '';
 
     /**
      * Run action

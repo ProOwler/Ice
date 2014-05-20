@@ -1,16 +1,16 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 03.05.14
- * Time: 13:13
- */
-
 namespace ice\core;
 
 use ice\helper\Object;
 use ice\Ice;
 
+/**
+ * Abstract validator class
+ *
+ * @package ice\core
+ * @author dp <denis.a.shestakov@gmail.com>
+ * @since -0
+ */
 abstract class Validator
 {
     public static function validateByScheme(array $data, array $validateScheme)

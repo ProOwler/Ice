@@ -12,8 +12,12 @@ use ice\helper\Object;
  *
  * View of registratiion form
  *
+ * @see \ice\core\Action
+ * @see \ice\core\action\View
+ *
  * @package ice\action
- * @author dp
+ * @author dp <denis.a.shestakov@gmail.com>
+ * @since -0
  */
 class Account_Registration extends Action implements \ice\core\action\View
 {

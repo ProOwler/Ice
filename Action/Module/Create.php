@@ -1,21 +1,32 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 03.05.14
- * Time: 12:26
- */
-
 namespace ice\action;
 
 use ice\core\Action;
 use ice\core\action\Cli;
+use ice\core\action\View;
 use ice\core\Action_Context;
 use ice\helper\Dir;
+use ice\helper\File;
 use ice\Ice;
+use ice\view\render\Php;
 
-class Module_Create extends Action implements Cli
+/**
+ * Create module
+ *
+ * Action create module dir, generate config and coping index file app.php
+ *
+ * @see \ice\core\Action
+ * @see \ice\core\action\Cli
+ * @see \ice\core\action\View
+ *
+ * @package ice\action
+ * @author dp <denis.a.shestakov@gmail.com>
+ * @since -0
+ */
+class Module_Create extends Action implements Cli, View
 {
+
+    protected $viewRenderClass = Php::VIEW_RENDER_PHP_CLASS;
 
     protected $inputValidators = [
         'name' => 'Ice:Not_Null'
@@ -30,9 +41,32 @@ class Module_Create extends Action implements Cli
      */
     protected function run(array $input, Action_Context &$actionContext)
     {
-        $moduleDir = Dir::get(Ice::getRootPath() . $input['name']);
+        $moduleName = ucfirst($input['name']);
 
-        var_dump($moduleDir);
-        echo 'module created!';
+        // create module dir
+        $moduleDir = Dir::get(Ice::getRootPath() . $moduleName);
+
+        //copy index file
+        copy(Ice::getEnginePath() . Ice::INDEX, $moduleDir . Ice::INDEX);
+
+        //generate config
+        $config = [
+            'modules' => [
+                $moduleName => $moduleDir,
+                'Ice' => Ice::getEnginePath()
+            ],
+            'configs' => [],
+            'hosts' => ['/' . strtolower($moduleName) . '.local$/' => 'development'],
+            'environments' => ['production' => []],
+            'viewRenders' => []
+        ];
+
+        File::createData($moduleDir . $moduleName . '.conf.php', $config);
+
+        return [
+            'moduleName' => $moduleName,
+            'moduleDir' => $moduleDir,
+            'mainConfigFile' => $moduleName . '.conf.php'
+        ];
     }
 }

@@ -2,13 +2,14 @@
 namespace ice\core;
 
 use ice\Exception;
+use ice\helper\Emmet;
 use ice\Ice;
 
 /**
  * Core view class
  *
  * @package ice\core
- * @author dp
+ * @author dp <denis.a.shestakov@gmail.com>
  */
 class View
 {
@@ -20,22 +21,9 @@ class View
         $this->_viewData = $viewData;
     }
 
-    /**
-     * @return string
-     */
-    public function getLayout()
-    {
-        if (!isset($this->_viewData['layout'])) {
-            $this->_viewData['layout'] = 'div#' . $this->_viewData['actionName'] . '{$view}';
-        }
-
-        return $this->_viewData['layout'];
-    }
-
     public function display()
     {
         echo $this->fetch();
-        return;
     }
 
     public function fetch()
@@ -77,12 +65,20 @@ class View
 
         array_shift(View_Render::$templates);
 
-        return $this->_result;
+        $layout = $this->getLayout();
+
+        return empty($layout)
+            ? $this->_result
+            : Emmet::translate($this->getLayout(), ['view' => $this->_result]);
     }
 
     public function getTemplate()
     {
-        if (!isset($this->_viewData['template'])) {
+        if ($this->_viewData['template'] === '') {
+            return $this->_viewData['template'];
+        }
+
+        if ($this->_viewData['template'] === null) {
             $this->_viewData['template'] = $this->_viewData['actionName'];
         }
 
@@ -101,8 +97,24 @@ class View
         return Ice::getConfig()->get('defaultViewRenderClass');
     }
 
+    /**
+     * @return string
+     */
+    public function getLayout()
+    {
+        if ($this->_viewData['layout'] === null && Ice::getConfig()->get('defaultLayoutView', false) === null) {
+            $this->_viewData['layout'] = 'div#' . $this->_viewData['actionName'] . '{{$view}}';
+        }
+
+        return $this->_viewData['layout'];
+    }
+
     public function __toString()
     {
-        return $this->fetch();
+        try {
+            return $this->fetch();
+        } catch (\Exception $e) {
+            return Logger::getMessageView($e);
+        }
     }
 }

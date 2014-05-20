@@ -1,14 +1,13 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 12.05.14
- * Time: 7:42
- */
-
 namespace ice\core;
 
-
+/**
+ * Interface Cacheable
+ *
+ * @package ice\core
+ * @author dp <denis.a.shestakov@gmail.com>
+ * @since -0
+ */
 interface Cacheable
 {
     public function getHash();

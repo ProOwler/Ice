@@ -1,5 +1,5 @@
-<div id="Main">
-    <h1><?= $welcome ?></h1>
+<h1><?= $enjoy ?></h1>
+<h2>Module <?= $project ?> is worked!</h2>
+<h3>Step 1: <?= $welcome ?></h3>
 
-    <h2><?= $enjoy ?></h2>
-</div>
+<a href="#" onclick="return false;"> >>> next step (click me)<<< </a> (craate own files of this page: generate route, actions and views)

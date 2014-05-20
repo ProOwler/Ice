@@ -13,7 +13,7 @@ use ice\Exception;
  * @link https://code.google.com/p/icengine/
  *
  * @package ice\core\action
- * @author dp
+ * @author dp <denis.a.shestakov@gmail.com>
  */
 class Legacy extends Action
 {

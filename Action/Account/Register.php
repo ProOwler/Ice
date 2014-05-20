@@ -12,8 +12,12 @@ use ice\model\ice\Account_Type_Exception;
  *
  * Action of registration user
  *
+ * @see \ice\core\Action
+ * @see \ice\core\action\Ajax
+ *
  * @package ice\action
- * @author dp
+ * @author dp <denis.a.shestakov@gmail.com>
+ * @since -0
  */
 class Account_Register extends Action implements Ajax
 {

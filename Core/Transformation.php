@@ -1,18 +1,12 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 21.03.14
- * Time: 15:53
- */
-
 namespace ice\core;
 
 /**
  * Transformation of data rows
  *
  * @package ice\core
- * @author dp
+ * @author dp <denis.a.shestakov@gmail.com>
+ * @since -0
  */
 abstract class Transformation
 {

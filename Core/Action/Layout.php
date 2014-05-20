@@ -10,7 +10,7 @@ use ice\core\Action_Context;
  * Common main action
  *
  * @package ice\core\action
- * @author dp
+ * @author dp <denis.a.shestakov@gmail.com>
  */
 class Layout extends Action implements View
 {

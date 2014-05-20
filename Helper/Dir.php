@@ -12,7 +12,9 @@ class Dir
             return rtrim($path, '/') . '/';
         }
 
-        mkdir($path, 0777, true);
+        $oldumask = umask(0);
+        mkdir($path, 0775, true);
+        umask($oldumask);
 
         return rtrim($path, '/') . '/';
     }

@@ -8,8 +8,12 @@ use ice\core\Action_Context;
 /**
  * Flush all cache data providers
  *
+ * @see \ice\core\Action
+ * @see \ice\core\action\Cli
+ *
  * @package ice\action
- * @author dp
+ * @author dp <denis.a.shestakov@gmail.com>
+ * @since -0
  */
 class Cache_Flush extends Action implements Cli
 {

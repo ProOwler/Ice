@@ -6,12 +6,13 @@ use ice\Exception;
 use ice\helper\Json;
 use ice\helper\Object;
 use ice\Ice;
+use ice\view\render\Php;
 
 /**
  * Abstract core class action
  *
  * @package ice\core
- * @author dp
+ * @author dp <denis.a.shestakov@gmail.com>
  */
 abstract class Action
 {
@@ -71,11 +72,11 @@ abstract class Action
 
             $hash = $actionClass . '/' . crc32(serialize($input));
 
-            $viewData = $dataProvider->get($hash);
-
-            if ($viewData) {
-                return $action->flush(new View($viewData));
-            }
+//            $viewData = $dataProvider->get($hash);
+//
+//            if ($viewData) {
+//                return $action->flush(new View($viewData));
+//            }
 
             self::pushToCallStack($actionClass, $input);
 
@@ -96,9 +97,11 @@ abstract class Action
                 $actionContext->setData((array)$action->run($input, $actionContext));
             } else {
                 $actionContext->setData($input);
-                $view = $actionContext->getViewData();
+                $actionContext->setViewRenderClass(Php::VIEW_RENDER_PHP_CLASS);
+                $actionContext->setTemplate('Action_Errors');
+                $viewData = $actionContext->getViewData();
                 unset($actionContext);
-                return $view;
+                return $action->flush(new View($viewData));
             }
 
             foreach ($actionContext->getActions() as $subActionClass => $actionData) {
@@ -122,7 +125,7 @@ abstract class Action
 
             unset($actionContext);
 
-            $dataProvider->set($hash, $viewData);
+//            $dataProvider->set($hash, $viewData);
 
             return $action->flush(new View($viewData));
 

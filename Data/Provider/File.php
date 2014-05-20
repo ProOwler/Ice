@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 17.03.14
- * Time: 20:25
- */
 
 namespace ice\data\provider;
 
@@ -12,6 +6,13 @@ use ice\core\Data_Provider;
 use ice\Exception;
 use ice\helper\Dir;
 
+/**
+ * Data provider for file storage
+ *
+ * @package ice\data\provider
+ * @author dp <denis.a.shestakov@gmail.com>
+ * @since -0
+ */
 class File extends Data_Provider
 {
     public static $connections = [];
@@ -35,8 +36,7 @@ class File extends Data_Provider
     public function set($key, $value, $ttl = 3600)
     {
         $fileName = $this->getFileName($key);
-        Dir::get(dirname($fileName));
-        return file_put_contents($fileName, '<?php' . "\n" . 'return ' . var_export($value, true) . ';');
+        return \ice\helper\File::createData($fileName, $value);
     }
 
     public function delete($key)
