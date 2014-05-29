@@ -27,7 +27,7 @@ return [
             'Ice' => 'ice\model\ice\\'
         ],
         'ice\core\Action' => [
-            'Ice' => 'ice\action\\'
+            'Ice' => 'ice\action\\',
         ],
         'ice\core\Validator' => [
             'Ice' => 'ice\validator\\'
@@ -109,6 +109,9 @@ return [
         ],
         'File:cache' => [
             'path' => dirname(__DIR__) . '/cache/'
+        ],
+        'File:output' => [
+            'path' => null
         ],
         'Null:cache' => [],
         'Request:http' => [],

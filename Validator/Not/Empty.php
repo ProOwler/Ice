@@ -24,7 +24,7 @@ class Not_Empty extends Validator
      */
     public function validate($data, $scheme = null)
     {
-        return !empty($data);
+        return !empty(trim($data));
     }
 
 }

@@ -3,20 +3,30 @@ namespace ice\action;
 
 use ice\core\Action;
 use ice\core\action\Cli;
+use ice\core\action\View;
 use ice\core\Action_Context;
+use ice\core\Loader;
+use ice\helper\Object;
+use ice\view\render\Php;
 
 /**
  * Create action class
 
  * @see \ice\core\Action
  * @see \ice\core\action\Cli
+ * @see \ice\core\action\View
  *
  * @package ice\action
  * @author dp <denis.a.shestakov@gmail.com>
  * @since -0
  */
-class Create extends Action implements Cli
+class Create extends Action implements Cli, View
 {
+    protected $inputValidators = [
+        'name' => 'Ice:Not_Empty'
+    ];
+
+    protected $viewRenderClass = Php::VIEW_RENDER_PHP_CLASS;
 
     /**
      * Run action
@@ -30,6 +40,16 @@ class Create extends Action implements Cli
      */
     protected function run(array $input, Action_Context &$actionContext)
     {
-        var_dump($input);
+        $action = strstr($input['name'], '/', true);
+        $actionClass = Object::getClassByClassShortName(Action::getClass(), $action);
+        $actionContext->setOutput('File:output/' . Loader::getFilePath($actionClass, '.php', '', false, true, true));
+
+        View_Create::call($input['name'])->display();
+        
+        return [
+            'namespace' => Object::getNamespaceByClassShortName(Action::getClass(), $action),
+            'actionName' => Object::getName($actionClass),
+            'interfaces' => isset($input['interfaces']) ? explode(',', $input['interfaces']) : []
+        ];
     }
 }

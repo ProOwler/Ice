@@ -1,8 +1,11 @@
 <?php
 namespace ice\core;
 
+use ice\data\provider\File;
+use ice\data\provider\Mysqli;
 use ice\Exception;
 use ice\helper\Emmet;
+use ice\helper\Object;
 use ice\Ice;
 
 /**
@@ -23,7 +26,20 @@ class View
 
     public function display()
     {
-        echo $this->fetch();
+        $output = $this->getOutput();
+
+        if ($output) {
+            $dataProvider = Data_Provider::getInstance($output);
+            if ($dataProvider instanceof File && $dataProvider->getConnection()) {
+                \ice\helper\File::createData($dataProvider->getScheme(), $this->fetch(), false);
+            } else if ($dataProvider instanceof Mysqli) {
+                $dataProvider->getConnection()->multi_query($this->fetch());
+            } else {
+                throw new Exception('Data provider not support');
+            }
+        } else {
+            echo $this->fetch();
+        }
     }
 
     public function fetch()
@@ -49,15 +65,16 @@ class View
             return $this->_result;
         }
 
+        $prefix = Object::getPrefixByClassShortName(Action::getClass(), $this->_viewData['actionClass']);
+
         /** @var View_Render $viewRenderClass */
         $viewRenderClass = $this->getViewRenderClass();
-
         $ext = $viewRenderClass::TEMPLATE_EXTENTION;
 
         array_unshift(View_Render::$templates, $template . $ext);
 
         try {
-            $this->_result = $viewRenderClass::getInstance()->fetch($template, $this->_viewData['data'], $ext);
+            $this->_result = $viewRenderClass::getInstance()->fetch($template, $this->_viewData['data'], $prefix, $ext);
             $dataProvider->set($hash, $this->_result);
         } catch (\Exception $e) {
             $this->_result = Logger::getMessageView(new Exception('Fetch template "' . $template . $ext . '" failed', [], $e));
@@ -74,15 +91,17 @@ class View
 
     public function getTemplate()
     {
-        if ($this->_viewData['template'] === '') {
-            return $this->_viewData['template'];
+        if ($this->_viewData['template'] !== null) {
+            return str_replace(array('_', '::'), '/', $this->_viewData['template']);
         }
 
-        if ($this->_viewData['template'] === null) {
-            $this->_viewData['template'] = $this->_viewData['actionName'];
-        }
+        $actionClass = $this->_viewData['actionClass'];
 
-        return str_replace(array('_', '::'), '/', $this->_viewData['template']);
+        $this->_viewData['template'] = in_array('ice\core\action\View', class_implements($actionClass))
+            ? str_replace(array('_', '::'), '/', Object::getName($actionClass))
+            : '';
+
+        return $this->_viewData['template'];
     }
 
     /**
@@ -97,15 +116,29 @@ class View
         return Ice::getConfig()->get('defaultViewRenderClass');
     }
 
+    public function getOutput()
+    {
+        return $this->_viewData['output'];
+    }
+
     /**
      * @return string
      */
     public function getLayout()
     {
-        if ($this->_viewData['layout'] === null && Ice::getConfig()->get('defaultLayoutView', false) === null) {
-            $this->_viewData['layout'] = 'div#' . $this->_viewData['actionName'] . '{{$view}}';
+        if ($this->_viewData['layout'] !== null) {
+            return $this->_viewData['layout'];
         }
 
+        $actionClass = $this->_viewData['actionClass'];
+
+        $this->_viewData['layout'] = in_array('ice\core\action\Cli', class_implements($actionClass))
+            ? ''
+            : (
+            Ice::getConfig()->get('defaultLayoutView', false) === null
+                ? 'div#' . Object::getName($actionClass) . '{{$view}}'
+                : Ice::getConfig()->get('defaultLayoutView', false)
+            );
         return $this->_viewData['layout'];
     }
 

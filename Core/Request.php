@@ -23,10 +23,10 @@ class Request
             : 'en_US';
     }
 
-    public static function uri()
+    public static function uri($withoutQueryString = false)
     {
         return isset($_SERVER['REQUEST_URI'])
-            ? $_SERVER['REQUEST_URI']
+            ? ($withoutQueryString ? strtok($_SERVER["REQUEST_URI"],'?') : $_SERVER['REQUEST_URI'])
             : 'php://input';
     }
 

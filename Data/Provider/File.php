@@ -79,6 +79,11 @@ class File extends Data_Provider
     protected function connect(&$connection)
     {
         $connection = $this->getOption('path');
+
+        if ($connection === null) {
+            $connection = dirname($this->getScheme());
+        }
+
         return (bool)Dir::get($connection);
     }
 

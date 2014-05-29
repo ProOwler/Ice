@@ -32,6 +32,11 @@ class Front extends Action implements View
      */
     protected function run(array $input, Action_Context &$context)
     {
+        if (empty($input['route'])) {
+            $context->addAction('Ice:Http_Status_404', [], 'front');
+            return;
+        }
+
         $params = $input['params'];
         $params['actions'] = $input['actions'];
 

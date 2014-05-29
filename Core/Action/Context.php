@@ -23,6 +23,8 @@ class Action_Context
 
     private $_template = '';
 
+    private $_output = null;
+
     private $_data = [];
 
     private $_viewRenderClass = null;
@@ -119,9 +121,10 @@ class Action_Context
     public function getViewData()
     {
         return [
-            'actionName' => Object::getName($this->_actionClass),
+            'actionClass' => $this->_actionClass,
             'layout' => $this->_layout,
             'template' => $this->_template,
+            'output' => $this->_output,
             'viewRenderClass' => $this->_viewRenderClass,
             'data' => $this->_data
         ];
@@ -171,5 +174,9 @@ class Action_Context
     public function setLayout($layout)
     {
         $this->_layout = $layout;
+    }
+
+    public function setOutput($output) {
+        $this->_output = $output;
     }
 } 

@@ -36,7 +36,7 @@ class Layout extends Action implements View
         }
 
         foreach ($input['actions'] as $var => $action) {
-            $context->addAction($action, $input, $var);
+            $context->addAction($action, [], $var);
         }
 
         return [];

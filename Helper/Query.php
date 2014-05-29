@@ -38,4 +38,9 @@ class Query
 
         return $filterFields;
     }
-} 
+
+    public static function getRowsByParts(\ice\core\Query $query)
+    {
+
+    }
+}

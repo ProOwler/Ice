@@ -12,11 +12,11 @@ class Serializer
 {
     public static function serialize($data)
     {
-        return Json::encode($data);
+        return serialize($data);
     }
 
     public static function unserialize($data)
     {
-        return Json::decode($data);
+        return unserialize($data);
     }
 } 

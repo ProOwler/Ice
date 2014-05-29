@@ -44,7 +44,8 @@ class Null extends Data_Provider {
 
     public function get($key = null)
     {
-        return null;
+
+        return $key ? null : array();
     }
 
     public function set($key, $value, $ttl = 3600)

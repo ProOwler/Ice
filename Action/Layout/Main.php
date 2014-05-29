@@ -18,9 +18,6 @@ use ice\view\render\Php;
  */
 class Layout_Main extends Layout
 {
-    protected $staticActions = [
-        'Ice:Html_Head_Resources'
-    ];
-
+    protected $staticActions = 'Ice:Html_Head_Resources';
     protected $viewRenderClass = Php::VIEW_RENDER_PHP_CLASS;
 }

@@ -56,9 +56,9 @@ abstract class View_Render
 
     abstract public function init();
 
-    abstract public function display($template, array $data = [], $ext);
+    abstract public function display($template, array $data = [], $prefix, $ext);
 
-    abstract public function fetch($template, array $data = [], $ext);
+    abstract public function fetch($template, array $data = [], $prefix, $ext);
 
     public function getConfig()
     {

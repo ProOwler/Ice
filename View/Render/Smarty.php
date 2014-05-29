@@ -30,8 +30,8 @@ class Smarty extends View_Render
         foreach (Ice::getModules() as $modulePath) {
             $templateDirs[] = $modulePath . 'View/Template';
         }
-        $this->_smarty->setTemplateDir($templateDirs);
 
+        $this->_smarty->setTemplateDir($templateDirs);
         $this->_smarty->setCompileDir($this->getConfig()->get('templates_c') . Ice::getProject());
         $this->_smarty->addPluginsDir($this->getConfig()->get('plugins', false));
 //        $this->_smarty->setCacheDir('/web/www.example.com/smarty/cache');
@@ -39,10 +39,10 @@ class Smarty extends View_Render
         $this->_smarty->debugging = true;
     }
 
-    public function display($template, array $data = [], $ext)
+    public function display($template, array $data = [], $prefix, $ext)
     {
         /** @var \Smarty_Internal_Template $smartyTemplate */
-        $smartyTemplate = $this->_smarty->createTemplate($template . $ext);
+        $smartyTemplate = $this->_smarty->createTemplate($prefix . '/' . $template . $ext);
 
         foreach ($data as $key => $value) {
             $smartyTemplate->assign($key, $value);
@@ -51,22 +51,15 @@ class Smarty extends View_Render
         $smartyTemplate->display();
     }
 
-    public function fetch($template, array $data = [], $ext)
+    public function fetch($template, array $data = [], $prefix, $ext)
     {
-        $templateName = $template . $ext;
-
         /** @var \Smarty_Internal_Template $smartyTemplate */
-        $smartyTemplate = $this->_smarty->createTemplate($templateName);
+        $smartyTemplate = $this->_smarty->createTemplate($prefix . '/' . $template . $ext);
 
         foreach ($data as $key => $value) {
             $smartyTemplate->assign($key, $value);
         }
 
-        $view = null;
-
-        $view = $smartyTemplate->fetch();
-
-
-        return $view;
+        return $smartyTemplate->fetch();
     }
 }

@@ -162,7 +162,7 @@ abstract class Model
      *
      * @param $fieldName
      * @param null $fieldValue
-     * @param bool $isAffected
+     * @param bool $isAffected Save for update
      * @return Model
      * @throws Exception
      */
@@ -525,12 +525,14 @@ abstract class Model
      */
     public function insert(Data_Source $dataSource = null)
     {
+        $values = $this->get();
+
         if ($this->_pk) {
-            $this->set($this->getPkName(), $this->_pk);
+            $values[$this->getPkName()] = $this->_pk;
         }
 
         $this->_pk = $this->getQueryBuilder(Query::TYPE_INSERT)
-            ->values($this->get())
+            ->values($values)
             ->execute($dataSource)
             ->getInsertId();
 

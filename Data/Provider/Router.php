@@ -22,7 +22,7 @@ class Router extends Data_Provider
     {
         $scheme = $this->getScheme();
 
-        $url = $scheme == 'default' ? Request::uri() : $scheme;
+        $url = $scheme == 'default' ? Request::uri(true) : $scheme;
 
         $dataProvider = Data_Provider::getInstance(Ice::getEnvironment()->get('dataProviderKeys/' . Route::getClass()));
 

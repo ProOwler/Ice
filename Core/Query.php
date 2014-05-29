@@ -3,7 +3,7 @@ namespace ice\core;
 
 use ice\Exception;
 use ice\helper\Object;
-use ice\helper\String;
+use ice\helper\Serializer;
 use ice\Ice;
 
 /**
@@ -838,6 +838,15 @@ class Query implements Cacheable
      *      ],
      *  ];
      *
+     * @code
+     *  ->values('name', 'Petya')
+     *  ->values(['name' => 'Petya', 'surname' => 'Vasechkin'])
+     *  ->values([
+     *              ['name' => 'Petya', 'surname' => 'Vasechkin'],
+     *              ['name' => 'Ivan', 'surname' => 'Petrov'],
+     *  ])
+     * @endcode
+     *
      * @param $key
      * @param null $value
      * @return Query
@@ -863,9 +872,7 @@ class Query implements Cacheable
 
         $this->appendCacheTag($modelClass, $fieldNames, false, true);
 
-        foreach ($key as $value) {
-            $this->_bindParts[self::PART_VALUES] = array_merge($this->_bindParts[self::PART_VALUES], array_values($value));
-        }
+        $this->_bindParts[self::PART_VALUES] = array_merge($this->_bindParts[self::PART_VALUES], $key);
 
         return $this;
     }
@@ -1078,7 +1085,7 @@ class Query implements Cacheable
 
     public function getSqlPartsHash()
     {
-        return crc32(String::serialize($this->getSqlPart()));
+        return crc32(Serializer::serialize($this->getSqlPart()));
     }
 
     /**
@@ -1143,7 +1150,7 @@ class Query implements Cacheable
 
     public function getBindPartsHash()
     {
-        return crc32(String::serialize($this->getBindPart()));
+        return crc32(Serializer::serialize($this->getBindPart()));
     }
 
     public function getValidateTags()

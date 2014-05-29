@@ -10,9 +10,13 @@ namespace ice\helper;
  */
 class File
 {
-    public static function createData($fileName, $data)
+    public static function createData($fileName, $data, $phpData = true, $flag = 0)
     {
         Dir::get(dirname($fileName));
-        return file_put_contents($fileName, '<?php' . "\n" . 'return ' . var_export($data, true) . ';');
+        $data = $phpData ? '<?php' . "\n" . 'return ' . var_export($data, true) . ';' : $data;
+        file_put_contents($fileName, $data, $flag);
+        if (substr(sprintf('%o', fileperms('/etc/passwd')), -4) != 0664) {
+            chmod($fileName, 0664);
+        }
     }
 } 

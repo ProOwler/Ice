@@ -2,6 +2,7 @@
 namespace ice\core;
 
 use ice\Exception;
+use ice\exception\File_Not_Found;
 use ice\Ice;
 
 /**
@@ -93,13 +94,14 @@ class Loader
             $typePathes = [];
             $typePathes[] = $path ? $path . '/' : $path;
 
-            $filePath = '';
-            foreach (explode('\\', $class) as $filePathPart) {
-                $filePathPart[0] = strtoupper($filePathPart[0]);
-                $filePath .= $filePathPart . '/';
+
+            $filePathParts = explode('\\', $class);
+
+            foreach ($filePathParts as &$filePathPart) {
+                $filePathPart = ucfirst($filePathPart);
             }
 
-            $filePath = str_replace('_', '/', rtrim($filePath, '/'));
+            $filePath = str_replace('_', '/', implode('/', $filePathParts));
 
             if (!$isNotLegacy && !$path) {
                 array_push($typePathes, 'Model/', 'Class/');
@@ -125,7 +127,7 @@ class Loader
         }
 
         if ($isRequired) {
-            throw new Exception('File for "' . $class . '" not found', $stack);
+            throw new File_Not_Found($class . ' (last file: ' . $fileName . ')' , $stack);
         }
 
         return $isNotNull ? reset($stack) : null;

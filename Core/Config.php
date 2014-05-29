@@ -41,9 +41,11 @@ class Config implements Iterator
      * @param $className
      * @param array $configData
      * @param null $postfix
+     * @param bool $force
+     * @throws Exception
      * @return Config
      */
-    public static function create($className, array $configData, $postfix = null)
+    public static function create($className, array $configData, $postfix = null, $force = false)
     {
         $configName = $postfix
             ? $className . '_' . $postfix
@@ -57,6 +59,10 @@ class Config implements Iterator
         }
 
         $fileName = Ice::getProjectPath() . 'Config/' . str_replace('_', '/', rtrim($filePath, '/')) . '.php';
+
+        if (file_exists($fileName) && !$force) {
+            throw new Exception('Config file "' . $fileName . '" already exists');
+        }
 
         File::createData($fileName, $configData);
 

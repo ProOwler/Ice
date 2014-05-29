@@ -12,8 +12,12 @@ use ice\helper\Object;
  *
  * View of authorization form
  *
+ * @see \ice\core\Action
+ * @see \ice\core\action\View
+ *
  * @package ice\action
- * @author dp
+ * @author dp <denis.a.shestakov@gmail.com>
+ * @since -0
  */
 class Account_Authorization extends Action implements \ice\core\action\View
 {
@@ -31,21 +35,8 @@ class Account_Authorization extends Action implements \ice\core\action\View
 //            Helper_Header::redirect('/');
 //        }
 
-        return ['accountType' => $input['accountType']];
-    }
+        $context->setTemplate(Object::getName($this->getClass()) . '_' . $input['accountType']);
 
-    /**
-     * Flush action context.
-     *
-     * Modify view after flush
-     *
-     * @param View $view
-     * @return View
-     */
-    protected function flush(View $view)
-    {
-        $view = parent::flush($view);
-        $view->setTemplate(Object::getName($this->getClass()) . '_' . $view->getData()['accountType']);
-        return $view;
+        return ['accountType' => $input['accountType']];
     }
 }

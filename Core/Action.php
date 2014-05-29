@@ -1,8 +1,10 @@
 <?php
 namespace ice\core;
 
+use ice\action\Create;
 use ice\core\action\Cli;
 use ice\Exception;
+use ice\exception\File_Not_Found;
 use ice\helper\Json;
 use ice\helper\Object;
 use ice\Ice;
@@ -26,15 +28,17 @@ abstract class Action
     protected $staticActions = [];
     /** @var string|null Emmet style layout */
     protected $layout = null;
-    /** @var string|null template of view */
-    protected $template = '';
+    /** @var string|null Template of view */
+    protected $template = null;
+    /** @var string|null Output type: standart|file */
+    protected $output = null;
     /** @var string|null Render class for view */
     protected $viewRenderClass = null;
     /** @var array Default input data */
     protected $inputDefaults = [];
-    /** @var array input data validators */
+    /** @var array Input data validators */
     protected $inputValidators = [];
-    /** @var array inputDataProviders */
+    /** @var array InputDataProviders */
     protected $dataProviderKeys = [];
     /** @var array Loaded config */
     private $_config = null;
@@ -68,9 +72,9 @@ abstract class Action
         try {
             $input = $action->getInput($action->dataProviderKeys, $data);
 
-            $dataProvider = Data_Provider::getInstance(Ice::getEnvironment()->get('dataProviderKeys/' . __CLASS__ . '/output'));
-
-            $hash = $actionClass . '/' . crc32(serialize($input));
+//            $dataProvider = Data_Provider::getInstance(Ice::getEnvironment()->get('dataProviderKeys/' . __CLASS__ . '/output'));
+//
+//            $hash = $actionClass . '/' . crc32(serialize($input));
 
 //            $viewData = $dataProvider->get($hash);
 //
@@ -84,13 +88,8 @@ abstract class Action
 
             $actionContext->addAction($action->staticActions);
             $actionContext->setLayout($action->layout);
-
-            if (in_array('ice\core\action\View', class_implements($actionClass))) {
-                $actionContext->setTemplate(null);
-            } else {
-                $actionContext->setTemplate($action->template);
-            }
-
+            $actionContext->setOutput($action->output);
+            $actionContext->setTemplate($action->template);
             $actionContext->setViewRenderClass($action->viewRenderClass);
 
             if (empty($input['errors'])) {
@@ -112,7 +111,20 @@ abstract class Action
 
                 foreach ($actionData as $subActionKey => $subActionParams) {
                     try {
-                        $data[$subActionKey] = $subActionClass::call($subActionParams, $level);
+                        try {
+                            $data[$subActionKey] = $subActionClass::call($subActionParams, $level);
+                        } catch (File_Not_Found $e) {
+                            Create::call(['name' => $subActionClass])->display();
+                            $data[$subActionKey] = $subActionClass::call($subActionParams, $level);
+                        }
+
+                        if ($data[$subActionKey] instanceof View) {
+                            $output = $data[$subActionKey]->getOutput();
+
+                            if ($output) {
+                                $actionContext->setOutput($output);
+                            }
+                        }
                     } catch (\Exception $e) {
                         $data[$subActionKey] = Logger::getMessageView(new Exception('Calling subAction "' . $subActionClass . '" in action "' . $actionClass . '" failed', [], $e));
                     }
@@ -185,7 +197,7 @@ abstract class Action
      */
     private function getInput($dataProviderKeys, array $input)
     {
-        $dataProviderKeys = (array) $dataProviderKeys;
+        $dataProviderKeys = (array)$dataProviderKeys;
 
         /** @var Action $actionClass */
         $actionClass = get_class($this);
@@ -207,6 +219,16 @@ abstract class Action
         $input['errors'] = Validator::validateByScheme($input, $this->getInputValidators());
 
         return $input;
+    }
+
+    /**
+     * Return data provider key of action
+     *
+     * @return string
+     */
+    public static function getRegistryDataProviderKey()
+    {
+        return self::REGISTRY_DATA_PROVIDER_KEY . get_called_class();
     }
 
     /**
@@ -342,15 +364,5 @@ abstract class Action
     public static function getHash($data)
     {
         return (hash('crc32b', igbinary_serialize($data)));
-    }
-
-    /**
-     * Return data provider key of action
-     *
-     * @return string
-     */
-    public static function getRegistryDataProviderKey()
-    {
-        return self::REGISTRY_DATA_PROVIDER_KEY . get_called_class();
     }
 }

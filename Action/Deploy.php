@@ -19,9 +19,10 @@ use ice\Exception;
 class Deploy extends Action implements Cli
 {
     protected $staticActions = [
-        'ice\action\Data_Mapping_Sync',
-        'ice\action\Model_Scheme_Sync',
-        'ice\action\Model_Defined_Sync'
+        'Ice:Migration',
+        'Ice:Data_Mapping_Sync',
+        'Ice:Model_Scheme_Sync',
+        'Ice:Model_Defined_Sync'
     ];
 
     /**

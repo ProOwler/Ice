@@ -193,8 +193,6 @@ class Ice
             $_config = array_merge_recursive($_config, include $configFile);
         }
 
-        ini_set('xdebug.var_display_max_depth', -1);
-
         $host = Request::host();
         foreach ($_config['hosts'] as $pattern => $environment) {
             $matches = [];
@@ -318,6 +316,8 @@ class Ice
                 $this->view = Front_Ajax::call();
                 return $this;
             }
+
+            Logger::initFb();
 
             $this->view = Front::call();
         } catch (\Exception $e) {

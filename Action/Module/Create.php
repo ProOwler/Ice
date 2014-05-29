@@ -42,6 +42,15 @@ class Module_Create extends Action implements Cli, View
     protected function run(array $input, Action_Context &$actionContext)
     {
         $moduleName = ucfirst($input['name']);
+        $lowerModuleName = strtolower($moduleName);
+
+        if (file_exists(Ice::getRootPath() . $moduleName)) {
+            return [
+                'moduleDir' => Dir::get(Ice::getRootPath() . $moduleName),
+                'mainConfigFile' => $moduleName . '.conf.php',
+                'message' => 'module' . $moduleName . 'already exists!'
+            ];
+        }
 
         // create module dir
         $moduleDir = Dir::get(Ice::getRootPath() . $moduleName);
@@ -51,12 +60,22 @@ class Module_Create extends Action implements Cli, View
 
         //generate config
         $config = [
+            'defaultLayoutView' => null,
+            'defaultLayoutAction' => 'ice\action\Layout_Main',
+            'defaultViewRenderClass' => 'ice\view\render\Php',
             'modules' => [
                 $moduleName => $moduleDir,
                 'Ice' => Ice::getEnginePath()
             ],
-            'configs' => [],
-            'hosts' => ['/' . strtolower($moduleName) . '.local$/' => 'development'],
+            'configs' => [
+                $lowerModuleName . '\core\Model' => [
+                    $moduleName => $lowerModuleName . '\model\\' . $lowerModuleName . '\\'
+                ],
+                'ice\core\Action' => [
+                    $moduleName => $lowerModuleName . '\action\\',
+                ],
+            ],
+            'hosts' => ['/' . $lowerModuleName . '.local$/' => 'development'],
             'environments' => ['production' => []],
             'viewRenders' => []
         ];
@@ -64,9 +83,9 @@ class Module_Create extends Action implements Cli, View
         File::createData($moduleDir . $moduleName . '.conf.php', $config);
 
         return [
-            'moduleName' => $moduleName,
             'moduleDir' => $moduleDir,
-            'mainConfigFile' => $moduleName . '.conf.php'
+            'mainConfigFile' => $moduleName . '.conf.php',
+            'message' => 'module' . $moduleName . 'was created!'
         ];
     }
 }

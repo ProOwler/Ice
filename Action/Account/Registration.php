@@ -34,21 +34,8 @@ class Account_Registration extends Action implements \ice\core\action\View
 //            Helper_Header::redirect('/');
 //        }
 
-        return ['accountType' => $input['accountType']];
-    }
+        $context->setTemplate(Object::getName($this->getClass()) . '_' . $input['accountType']);
 
-    /**
-     * Flush action context.
-     *
-     * Modify view after flush
-     *
-     * @param View $view
-     * @return View
-     */
-    protected function flush(View $view)
-    {
-        $view = parent::flush($view);
-        $view->setTemplate(Object::getName($this->getClass()) . '_' . $view->getData()['accountType']);
-        return $view;
+        return ['accountType' => $input['accountType']];
     }
 }

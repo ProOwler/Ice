@@ -5,6 +5,7 @@ use ice\core\Loader;
 use ice\core\Logger;
 use ice\core\View_Render;
 use ice\Exception;
+use ice\Ice;
 
 class Php extends View_Render
 {
@@ -15,12 +16,12 @@ class Php extends View_Render
     {
     }
 
-    public function display($template, array $data = [], $ext)
+    public function display($template, array $data = [], $prefix, $ext)
     {
         extract($data);
         unset($data);
 
-        $templateName = Loader::getFilePath($template, $ext, 'View/Template');
+        $templateName = Loader::getFilePath($template, $ext, 'View/Template/' . $prefix);
 
         try {
             require $templateName;
@@ -29,12 +30,12 @@ class Php extends View_Render
         }
     }
 
-    public function fetch($template, array $data = [], $ext)
+    public function fetch($template, array $data = [], $prefix, $ext)
     {
         extract($data);
         unset($data);
 
-        $templateName = Loader::getFilePath($template, $ext, 'View/Template');
+        $templateName = Loader::getFilePath($template, $ext, 'View/Template/' . $prefix);
 
         ob_start();
         ob_implicit_flush(false);

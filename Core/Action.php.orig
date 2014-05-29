@@ -1,44 +1,43 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dp
- * Date: 27.10.13
- * Time: 15:13
- */
-
 namespace ice\core;
 
-use ErrorException;
-use ice\core\action\Result;
+use ice\core\action\Cli;
+use ice\Exception;
+use ice\helper\Json;
+use ice\helper\Object;
+use ice\Ice;
+use ice\view\render\Php;
 
+/**
+ * Abstract core class action
+ *
+ * @package ice\core
+ * @author dp <denis.a.shestakov@gmail.com>
+ */
 abstract class Action
 {
-    const DEFAULT_VIEW_RENDER_NAME = 'Smarty';
-    const DEFAULT_DATA_PROVIDER_KEY = 'Apc:default/action';
+    const REGISTRY_DATA_PROVIDER_KEY = 'Registry:action/';
 
-    /**
-     * Переопределяемый конфиг
-     *
-     * @var array
-     */
-    public static $config = array();
-
-    /**
-     * Загруженный конфиг
-     *
-     * @var null
-     */
+    /** @var array Переопределяемый конфиг */
+    protected static $config = [];
+    /** @var array Стек вызовов экшинов */
+    private static $_callStack = [];
+    /** @var array предопределенные экшины */
+    protected $staticActions = [];
+    /** @var string|null Emmet style layout */
+    protected $layout = null;
+    /** @var string|null template of view */
+    protected $template = null;
+    /** @var string|null Render class for view */
+    protected $viewRenderClass = null;
+    /** @var array Default input data */
+    protected $inputDefaults = [];
+    /** @var array input data validators */
+    protected $inputValidators = [];
+    /** @var array inputDataProviders */
+    protected $dataProviderKeys = [];
+    /** @var array Loaded config */
     private $_config = null;
-
-    private $viewRenderName = null;
-
-    private $template = null;
-
-    protected $dataProviders = array();
-
-    protected $actions = array();
-
-    protected $inputDefaults = array();
 
     /**
      * Приватный конструктор. Создаем через Action::create()
@@ -48,276 +47,148 @@ abstract class Action
     }
 
     /**
-     * Запускает Экшин
+     * Call named action
      *
-     * @param array $input
-     * @throws \ErrorException
-     * @return array
-     */
-    abstract protected function run(array $input);
-
-    protected function preRun(array &$input, $level)
-    {
-
-    }
-
-    protected function postRun(array &$output, $level)
-    {
-
-    }
-
-    protected function init()
-    {
-
-    }
-
-    protected function flush(Context &$context)
-    {
-
-    }
-
-    private function getData(array $data, $level)
-    {
-        $input = array_merge($this->getInput(), $data);
-
-        $this->preRun($input, $level);
-        $output = (array)$this->run($input);
-        $this->postRun($output, $level);
-
-        return $output;
-    }
-
-    public function getClass()
-    {
-        return get_class($this);
-    }
-
-    public function getName()
-    {
-        $actionClass = $this->getClass();
-        return substr($actionClass, strrpos($actionClass, '\\') + 1);
-    }
-
-    public function getConfig()
-    {
-        if ($this->_config !== null) {
-            return $this->_config;
-        }
-
-        $this->_config = Config::get($this->getClass(), self::$config);
-        return $this->_config;
-    }
-
-    public function getViewRenderName()
-    {
-        if ($this->viewRenderName !== null) {
-            return $this->viewRenderName;
-        }
-
-        $this->viewRenderName = self::DEFAULT_VIEW_RENDER_NAME;
-
-        return $this->viewRenderName;
-    }
-
-    protected function setViewRenderName($viewRender)
-    {
-        $this->viewRenderName = $viewRender;
-    }
-
-    public function getTemplate()
-    {
-        if ($this->template === null) {
-            $this->template = $this->getName();
-        }
-
-        return str_replace(array('_', '::'), '/', $this->template);
-    }
-
-    protected function setTemplate($template)
-    {
-        $this->template = $template;
-    }
-
-    /**
      * @param array $data
      * @param int $level
-     * @return \ice\core\Context|null
-     * @throws ErrorException
+     * @return View
+     * @throws Exception
      */
-    public static function call(array $data = array(), $level = 0)
+    public static function call(array $data = [], $level = 0)
     {
-        $actionResult = null;
-
+        $view = null;
         $action = null;
 
-        try {
-            $actionTime = 0.0;
-            $subActionCount = 0;
-            $subActionTime = 0.0;
-//        $renderTime = 0.0;
-
-            $timePoint = null;
-            if (defined('PROFILER') && PROFILER) {
-                $timePoint = microtime(true);
-            }
-
-            /** @var Action $actionClassName */
-            $actionClassName = get_called_class();
-
-            /** @var Action $action */
-            $action = $actionClassName::get();
-
-            $action->init();
-
-            $data = $action->getData($data, $level); // этот метод должен быть вызван до getViewRender и getTemplate
-
-            $actionResult = new Context(
-                $action->getViewRenderName(),
-                $action->getTemplate(),
-                $data
-            );
-
-            if (defined('PROFILER') && PROFILER) {
-                $actionTime = microtime(true) - $timePoint;
-                $timePoint = microtime(true);
-            }
-
-            foreach ($action->getActions() as $actionData) {
-                $actionName = null;
-                $actionParams = array();
-
-                if (is_array($actionData)) {
-                    list($actionName, $actionParams) = each($actionData);
-                } else {
-                    $actionName = $actionData;
-                }
-
-                /** @var Action $subActionClassName */
-                $subActionClassName = '\ice\core\action\\' . $actionName;
-                $actionResult->assign($actionName, $subActionClassName::call($actionParams, (int)$level + 1));
-
-                $subActionCount++;
-            }
-
-            if (defined('PROFILER') && PROFILER) {
-                if ($subActionCount) {
-                    $subActionTime = round(microtime(true) - $timePoint, 5);
-                }
-//            $timePoint = microtime(true);
-            }
-
-//        $output['html'] = $action->render($output['data']);
-
-            if (defined('PROFILER') && PROFILER) {
-//            $renderTime = round(microtime(true) - $timePoint, 5);
-                $timePoint = microtime(true);
-            }
-
-            $action->flush($actionResult);
-
-            if (defined('PROFILER') && PROFILER) {
-                $actionTime = round(microtime(true) - $timePoint + $actionTime, 5);
-
-                $totalTime = $subActionTime + /*$renderTime +*/
-                    $actionTime;
-
-                if ($totalTime > 0.01) {
-                    $totalTime = '<b style="color: red;">' . $totalTime . '</b>';
-                } elseif ($totalTime > 0.08) {
-                    $totalTime = '<span style="color: red;">' . $totalTime . '</span>';
-                }
-
-                if ($subActionTime > 0.08) {
-                    $subActionTime = '<b style="color: red;">' . $subActionTime . '</b>';
-                } elseif ($subActionTime > 0.05) {
-                    $subActionTime = '<span style="color: red;">' . $subActionTime . '</span>';
-                }
-
-                if ($actionTime > 0.05) {
-                    $actionTime = '<b style="color: red;">' . $actionTime . '</b>';
-                } elseif ($actionTime > 0.03) {
-                    $actionTime = '<span style="color: red;">' . $actionTime . '</span>';
-                }
-
-//            if ($renderTime > 0.03) {
-//                $renderTime = '<b style="color: red;">' . $renderTime . '</b>';
-//            } elseif ($renderTime > 0.01) {
-//                $renderTime = '<span style="color: red;">' . $renderTime . '</span>';
-//            }
-
-                if (function_exists('fb')) {
-                    echo '<pre>' . (str_repeat("\t", $level) . $actionClassName . ': ' . $totalTime .
-                            ' | run: ' . $actionTime . ', actions(' . $subActionCount . '): ' . $subActionTime/* . ', render: ' . $renderTime*/) .
-                        "\n</pre>";
-                }
-            }
-
-        } catch (\Exception $e) {
-            throw new \ErrorException('Не удалось вызвать экшин "' . $action->getName() . '"', 0, 1, __FILE__, __LINE__, $e);
-        }
-
-        return $actionResult;
-    }
-
-    /**
-     * @return Action
-     */
-    private static function create()
-    {
-        $actionClassName = get_called_class();
-
-        return new $actionClassName();
-    }
-
-    /**
-     * @throws \ErrorException
-     * @return Action
-     */
-    public static function get()
-    {
-        /** @var Action $actionClassName */
-        $actionClassName = get_called_class();
-
-        /** @var Data_Provider $dataProvider */
-        $dataProvider = $actionClassName::getDataProvider();
+        /** @var Action $actionClass */
+        $actionClass = get_called_class();
 
         /** @var Action $action */
-        $action = $dataProvider->get($actionClassName);
+        $action = $actionClass::getInstance();
+
+        try {
+            $input = $action->getInput($action->dataProviderKeys, $data);
+
+            $dataProvider = Data_Provider::getInstance(Ice::getEnvironment()->get('dataProviderKeys/' . __CLASS__ . '/output'));
+
+            $hash = $actionClass . '/' . crc32(serialize($input));
+
+//            $viewData = $dataProvider->get($hash);
+//
+//            if ($viewData) {
+//                return $action->flush(new View($viewData));
+//            }
+
+            self::pushToCallStack($actionClass, $input);
+
+            $actionContext = new Action_Context($actionClass);
+
+            $actionContext->addAction($action->staticActions);
+            $actionContext->setLayout($action->layout);
+            $actionContext->setTemplate($action->template);
+            $actionContext->setViewRenderClass($action->viewRenderClass);
+
+            if (empty($input['errors'])) {
+                $actionContext->setData((array)$action->run($input, $actionContext));
+            } else {
+                $actionContext->setData($input);
+                $actionContext->setViewRenderClass(Php::VIEW_RENDER_PHP_CLASS);
+                $actionContext->setTemplate('Action_Errors');
+                $viewData = $actionContext->getViewData();
+                unset($actionContext);
+                return $action->flush(new View($viewData));
+            }
+
+            foreach ($actionContext->getActions() as $subActionClass => $actionData) {
+                $level += 1;
+                $data = [];
+
+                $subActionClass = Object::getClassByClassShortName(__CLASS__, $subActionClass);
+
+                foreach ($actionData as $subActionKey => $subActionParams) {
+                    try {
+                        $data[$subActionKey] = $subActionClass::call($subActionParams, $level);
+                    } catch (\Exception $e) {
+                        $data[$subActionKey] = Logger::getMessageView(new Exception('Calling subAction "' . $subActionClass . '" in action "' . $actionClass . '" failed', [], $e));
+                    }
+                }
+
+                $actionContext->assign(Object::getName($subActionClass), $data);
+            }
+
+            $viewData = $actionContext->getViewData();
+
+            unset($actionContext);
+
+//            $dataProvider->set($hash, $viewData);
+
+            return $action->flush(new View($viewData));
+
+        } catch (\Exception $e) {
+            if (isset($actionContext)) {
+                unset($actionContext);
+            }
+
+            $view = Logger::getMessageView(new Exception('Calling action "' . $actionClass . '" failed', [], $e));
+
+            if ($action instanceof Cli) {
+                echo $view . "\n";
+            }
+        }
+
+        return $view;
+    }
+
+    /**
+     * Get action object by name
+     *
+     * @param null $actionName
+     * @throws Exception
+     * @return Action
+     */
+    public static function getInstance($actionName = null)
+    {
+        /** @var Action $actionClass */
+        $actionClass = $actionName
+            ? Object::getClassByClassShortName(__CLASS__, $actionName)
+            : get_called_class();
+
+        /** @var Data_Provider $dataProvider */
+        $dataProvider = Data_Provider::getInstance(Ice::getEnvironment()->get('dataProviderKeys/' . __CLASS__ . '/instance'));
+
+        /** @var Action $action */
+        $action = $dataProvider->get($actionClass);
+
         if ($action) {
             return $action;
         }
 
-        $action = $actionClassName::create();
+        $action = new $actionClass();
 
-        if (!$action) {
-            throw new ErrorException('Could not create action "' . $actionClassName . '"');
-        }
-
-        $dataProvider->set($actionClassName, $action);
+        $dataProvider->set($actionClass, $action);
 
         return $action;
     }
 
-    private static function getDataProvider() {
-        /** @var Action $actionClass */
-        $actionClass = get_called_class();
-
-        $dataProviderKey = isset($actionClass::$config[Data_Provider::KEY])
-            ? $actionClass::$config[Data_Provider::KEY]
-            : self::DEFAULT_DATA_PROVIDER_KEY;
-
-        return Data_Provider::getInstance($dataProviderKey);
-    }
-
-    private function getInput()
+    /**
+     * Gets input data from data providers
+     *
+     * @param $dataProviderKeys
+     * @param array $input
+     * @throws Exception
+     * @return array
+     */
+    private function getInput($dataProviderKeys, array $input)
     {
-        $input = array();
+        $dataProviderKeys = (array)$dataProviderKeys;
+
+        /** @var Action $actionClass */
+        $actionClass = get_class($this);
+        $dataProviderKeys[] = $actionClass::getRegistryDataProviderKey();
 
         /** @var Data_Provider $dataProvider */
         $dataProvider = null;
-
-        foreach ($this->getDataProviders() as $dataProviderName) {
-            $dataProvider = Data_Provider::getInstance($dataProviderName);
+        foreach ($dataProviderKeys as $dataProviderKey) {
+            $dataProvider = Data_Provider::getInstance($dataProviderKey);
             $input = array_merge($input, (array)$dataProvider->get());
         }
 
@@ -327,42 +198,151 @@ abstract class Action
             }
         }
 
+        $input['errors'] = Validator::validateByScheme($input, $this->getInputValidators());
+
         return $input;
     }
 
-    protected function addAction($actionName, array $params = array())
+    /**
+     * Return data provider key of action
+     *
+     * @return string
+     */
+    public static function getRegistryDataProviderKey()
     {
-        $this->actions[] = array($actionName => $params);
-
+        return self::REGISTRY_DATA_PROVIDER_KEY . get_called_class();
     }
 
-    protected function getActions()
+    /**
+     * Return input data defaults
+     *
+     * @return array
+     */
+    private function getInputDefaults()
     {
-        if (!empty($this->getConfig()['actions'])) {
-            $this->actions = array_merge($this->actions, $this->getConfig()['actions']);
-        }
+        $config = $this->getConfig();
 
-        return $this->actions;
-    }
+        if ($config) {
+            $inputDefaults = $config->gets('inputDefaults', false);
 
-    protected function getInputDefaults()
-    {
-        if (!empty($this->getConfig()['inputDefaults'])) {
-            $this->inputDefaults = array_merge($this->inputDefaults, $this->getConfig()['inputDefaults']);
+            if (!empty($inputDefaults)) {
+                $this->inputDefaults = array_merge($this->inputDefaults, $inputDefaults);
+            }
         }
 
         return $this->inputDefaults;
     }
 
-    protected function getDataProviders()
+    /**
+     * Return action config
+     *
+     * @return Config
+     */
+    public function getConfig()
     {
-        if (!empty($this->getConfig()['dataProviders'])) {
-            $this->dataProviders = array_merge($this->dataProviders, $this->getConfig()['dataProviders']);
+        if ($this->_config !== null) {
+            return $this->_config;
         }
 
-        return $this->dataProviders;
+        $className = $this->getClass();
+
+        $this->_config = Config::getInstance($className, $className::$config);
+
+        return $this->_config;
     }
 
+    /**
+     * Return action class
+     *
+     * @return string
+     */
+    public static function getClass()
+    {
+        return get_called_class();
+    }
+
+    private function getInputValidators()
+    {
+        $config = $this->getConfig();
+
+        if ($config) {
+            $inputValidators = $config->gets('inputValidators', false);
+
+            if (!empty($inputValidators)) {
+                $this->inputValidators = array_merge($this->inputDefaults, $inputValidators);
+            }
+        }
+
+        return $this->inputValidators;
+    }
+
+    /**
+     * Push executed action in call stack array
+     *
+     * @param $actionClass
+     * @param $input
+     * @throws Exception
+     */
+    private static function pushToCallStack($actionClass, $input)
+    {
+        $actionName = Object::getName($actionClass);
+        $inputJson = Json::encode($input);
+
+        if (!isset(self::$_callStack[$actionName])) {
+            self::$_callStack[$actionName] = [];
+        }
+
+        if (!isset(self::$_callStack[$actionName][$inputJson])) {
+            self::$_callStack[$actionName][$inputJson] = 0;
+        }
+
+        if (self::$_callStack[$actionName][$inputJson] < 5) {
+            self::$_callStack[$actionName][$inputJson]++;
+//            fb([self::$callStack[$actionName][$inputJson], $actionName, $inputJson]);
+            return;
+        }
+
+        throw new Exception('action "' . $actionName . '" with input ' . $inputJson . ' already runned (' . self::$_callStack[$actionName][$inputJson] . '). May by found infinite loop.');
+    }
+
+    /**
+     * Run action
+     *
+     * @param array $input
+     * @param Action_Context $actionContext
+     * @return array
+     */
+    abstract protected function run(array $input, Action_Context &$actionContext);
+
+    /**
+     * Flush action context.
+     *
+     * Modify view after flush
+     *
+     * @param View $view
+     * @return View
+     */
+    protected function flush(View $view)
+    {
+        return $view;
+    }
+
+    /**
+     * Return current action call stack
+     *
+     * @return array
+     */
+    public static function getCallStack()
+    {
+        return self::$_callStack;
+    }
+
+    /**
+     * Get hash of input data
+     *
+     * @param $data
+     * @return string
+     */
     public static function getHash($data)
     {
         return (hash('crc32b', igbinary_serialize($data)));

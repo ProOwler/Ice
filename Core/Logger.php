@@ -3,6 +3,7 @@ namespace ice\core;
 
 use ice\Exception;
 use ice\helper\Dir;
+use ice\helper\File;
 use ice\helper\Memory;
 use ice\Ice;
 
@@ -49,10 +50,6 @@ class Logger
         ini_set('xdebug.var_display_max_depth', -1);
         ini_set('xdebug.profiler_enable', 1);
         ini_set('xdebug.profiler_output_dir', Ice::getRootPath() . 'xdebug');
-
-        require_once(Ice::getEnginePath() . 'Vendor/FirePHPCore/FirePHP.class.php');
-        require_once(Ice::getEnginePath() . 'Vendor/FirePHPCore/fb.php');
-        ob_start();
     }
 
     /**
@@ -146,7 +143,7 @@ class Logger
         $message .= '<strong style="color: red; text-decoration: underline;">' . $log['message'] . '</strong> <em style="color: blue;">' . $log['errPoint'] . '</em><br/>';
         if (!empty($errcontext)) {
             $message .= '<a style="color:grey; text-decoration: none; border-bottom:1px dashed;" href="#" onclick="$(\'.errcontext\').show();">errcontext</a><br/>' . "\n";
-            $message .= '<pre class="errcontext" style="color: green;/* display: none;*/ font-size: 9px;">' . print_r(
+            $message .= '<pre class="errcontext" style="color: green;/* display: none;*/ font-size: 9px;">' . @print_r(
                     $errcontext,
                     true
                 ) . '</pre>' . "\n";
@@ -175,6 +172,13 @@ class Logger
     {
         $logDir = Ice::getRootPath() . 'log/' . Ice::getProject() . '/';
         $logFile = Dir::get($logDir) . 'error_' . date('Y-m-d') . '.log';
-        file_put_contents($logFile, strip_tags($message), FILE_APPEND);
+        File::createData($logFile, strip_tags($message), false, FILE_APPEND);
+    }
+
+    public static function initFb()
+    {
+        require_once(Ice::getEnginePath() . 'Vendor/FirePHPCore/FirePHP.class.php');
+        require_once(Ice::getEnginePath() . 'Vendor/FirePHPCore/fb.php');
+        ob_start();
     }
 }
