@@ -40,12 +40,21 @@ class Create extends Action implements Cli, View
      */
     protected function run(array $input, Action_Context &$actionContext)
     {
-        $action = strstr($input['name'], '/', true);
+        $action = null;
+        $template = null;
+
+        $parts = explode('/', $input['name']);
+        if (count($parts) == 2) {
+            list($action, $template) = $parts;
+        } else {
+            $action = $input['name'];
+        }
+
         $actionClass = Object::getClassByClassShortName(Action::getClass(), $action);
         $actionContext->setOutput('File:output/' . Loader::getFilePath($actionClass, '.php', '', false, true, true));
 
-        View_Create::call($input['name'])->display();
-        
+        View_Create::call(['name' => $input['name']])->display();
+
         return [
             'namespace' => Object::getNamespaceByClassShortName(Action::getClass(), $action),
             'actionName' => Object::getName($actionClass),

@@ -20,7 +20,7 @@
         <span>- check code generation ...OK</span>
     </h3>
     <h4>
-       <a href="#" onclick="Module.check();return false;">PROFIT. Replace this page!</a>
+       <a href="/">PROFIT. Refrash this page!</a>
     </h4>
 <?php
 }?>

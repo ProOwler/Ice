@@ -87,21 +87,20 @@ class Loader
         foreach (Ice::getModules() as $modulePath) {
             $isNotLegacy = strpos(ltrim($class, '\\'), '\\');
 
-            if ($isNotLegacy) {
+            if ($isNotLegacy && !$path) {
                 $modulePath = substr($modulePath, 0, strrpos($modulePath, '/', -2)) . '/';
             }
 
             $typePathes = [];
             $typePathes[] = $path ? $path . '/' : $path;
 
-
             $filePathParts = explode('\\', $class);
 
             foreach ($filePathParts as &$filePathPart) {
-                $filePathPart = ucfirst($filePathPart);
+                $filePathPart = str_replace('_', '/', ucfirst($filePathPart));
             }
 
-            $filePath = str_replace('_', '/', implode('/', $filePathParts));
+            $filePath = implode('/', $filePathParts);
 
             if (!$isNotLegacy && !$path) {
                 array_push($typePathes, 'Model/', 'Class/');
@@ -112,6 +111,7 @@ class Loader
 
                 $stack[] = $fileName;
 
+//                var_dump($fileName . ' ' . (int)file_exists($fileName));
 //                if (function_exists('fb')) {
 //                    fb($fileName . ' ' . (int)file_exists($fileName));
 //                }

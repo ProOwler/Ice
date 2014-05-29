@@ -8,6 +8,7 @@ use ice\core\action\Cli;
 use ice\core\Loader;
 use ice\Exception;
 use ice\helper\Object;
+use ice\Ice;
 
 /**
  * Class View_Create
@@ -43,7 +44,9 @@ class View_Create extends Action implements View, Cli
             $action = $input['name'];
         }
         $actionClass = Object::getClassByClassShortName(Action::getClass(), $action);
-        $template = empty($template) ? $actionClass : $actionClass . '_' . $template;
+        $prefix = Object::getPrefixByClassShortName(Action::getClass(), $action);
+        $actionName = Object::getName($actionClass);
+        $template = $prefix . '/' . (empty($template) ? $actionName : $actionName . '/' . $template);
         $file = Loader::getFilePath($template, $input['ext'], 'View/Template', false, true, true);
         $actionContext->setOutput('File:output/' . $file);
     }
