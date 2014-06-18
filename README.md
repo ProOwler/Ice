@@ -1,4 +1,4 @@
-Ice
+[Ice](http://iceframework.net)
 ===
 
 Ice is a general purpose PHP-framework.
@@ -71,7 +71,3 @@ Directory structure
 
 
 Ice is Great!!!
--------------------
-[github wiki](https://github.com/ifacesoft/Ice/wiki)
-
-[more info on iceframework.net](http://iceframework.net) (coming soon available)

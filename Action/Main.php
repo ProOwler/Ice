@@ -7,7 +7,6 @@ use ice\core\Action_Context;
 use ice\core\Config;
 use ice\core\Route;
 use ice\data\provider\Request;
-use ice\data\provider\Router;
 use ice\helper\Dir;
 use ice\Ice;
 use ice\view\render\Php;
@@ -61,19 +60,21 @@ class Main extends Action implements View
                 }
             }
 
+            $project = Ice::getProject();
+
             if ($isNeedInstall) {
                 foreach ($dirs as $dir) {
                     Dir::get($modulePath . $dir);
                 }
 
-                Create::call(['name' => 'Db:Index', 'interfaces' => 'View'])->display();
+                Create::call(['name' => $project . ':Index', 'interfaces' => 'View'])->display();
 
                 Config::create(Route::getClass(), [
                         [
                             'route' => '/',
                             'actions' => [
                                 'title' => ['Ice:Title' => ['title' => Ice::getProject()]],
-                                'main' => 'Db:Index'
+                                'main' => $project . ':Index'
                             ]
                         ]
                     ]

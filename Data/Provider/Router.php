@@ -87,7 +87,7 @@ class Router extends Data_Provider
 
         unset($_route['patterns']);
 
-        if (empty($_route['layout'])) {
+        if (!isset($_route['layout']) || !isset($_route['layout']['action'])) {
             $_route['layout']['action'] = Ice::getConfig()->get('defaultLayoutAction');
         }
 

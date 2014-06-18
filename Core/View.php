@@ -91,11 +91,15 @@ class View
 
     public function getTemplate()
     {
+        $actionClass = $this->_viewData['actionClass'];
+
         if ($this->_viewData['template'] !== null) {
+            if ($this->_viewData['template'][0] == '/') {
+                return str_replace(array('_', '::'), '/', Object::getName($actionClass) . $this->_viewData['template']);
+            }
+
             return str_replace(array('_', '::'), '/', $this->_viewData['template']);
         }
-
-        $actionClass = $this->_viewData['actionClass'];
 
         $this->_viewData['template'] = in_array('ice\core\action\View', class_implements($actionClass))
             ? str_replace(array('_', '::'), '/', Object::getName($actionClass))
@@ -109,11 +113,11 @@ class View
      */
     public function getViewRenderClass()
     {
-        if (isset($this->_viewData['viewRenderClass'])) {
-            return $this->_viewData['viewRenderClass'];
-        }
+        $viewRenderClass = isset($this->_viewData['viewRenderClass'])
+            ? $this->_viewData['viewRenderClass']
+            : Ice::getConfig()->get('defaultViewRenderClass');
 
-        return Ice::getConfig()->get('defaultViewRenderClass');
+        return Object::getClassByClassShortName(View_Render::getClass(), $viewRenderClass);
     }
 
     public function getOutput()

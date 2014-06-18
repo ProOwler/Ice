@@ -17,8 +17,8 @@ if (!defined('STRING_CACHE')) {
 
 return [
     'defaultLayoutView' => null,
-    'defaultLayoutAction' => 'ice\action\Layout_Main',
-    'defaultViewRenderClass' => 'ice\view\render\Php',
+    'defaultLayoutAction' => 'Ice:Layout_Main',
+    'defaultViewRenderClass' => 'Ice:Php',
     'modules' => [
         'Ice' => __DIR__ . '/',
     ],
@@ -34,6 +34,9 @@ return [
         ],
         'ice\core\Query_Translator' => [
             'Ice' => 'ice\query\translator\\'
+        ],
+        'ice\core\View_Render' => [
+            'Ice' => 'ice\view\render\\'
         ]
     ],
     'host' => '',

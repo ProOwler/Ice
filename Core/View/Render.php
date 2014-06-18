@@ -17,9 +17,9 @@ abstract class View_Render
         $this->_config = Config::getInstance($this->getClass(), array_merge(self::$config, $config));
     }
 
-    public function getClass()
+    public static function getClass()
     {
-        return get_class($this);
+        return get_called_class();
     }
 
     /**
@@ -28,7 +28,7 @@ abstract class View_Render
     public static function getInstance()
     {
         /** @var View_Render $viewRenderClass */
-        $viewRenderClass = get_called_class();
+        $viewRenderClass = self::getClass();
 
         $config = Ice::getConfig()->gets('viewRenders/' . Object::getName($viewRenderClass));
 

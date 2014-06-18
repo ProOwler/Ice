@@ -42,7 +42,6 @@ class Module_Create extends Action implements Cli, View
     protected function run(array $input, Action_Context &$actionContext)
     {
         $moduleName = ucfirst($input['name']);
-        $lowerModuleName = strtolower($moduleName);
 
         if (file_exists(Ice::getRootPath() . $moduleName)) {
             return [
@@ -61,21 +60,21 @@ class Module_Create extends Action implements Cli, View
         //generate config
         $config = [
             'defaultLayoutView' => null,
-            'defaultLayoutAction' => 'ice\action\Layout_Main',
-            'defaultViewRenderClass' => 'ice\view\render\Php',
+            'defaultLayoutAction' => 'Ice:Layout_Main',
+            'defaultViewRenderClass' => 'Ice:Php',
             'modules' => [
                 $moduleName => $moduleDir,
                 'Ice' => Ice::getEnginePath()
             ],
             'configs' => [
-                $lowerModuleName . '\core\Model' => [
-                    $moduleName => $lowerModuleName . '\model\\' . $lowerModuleName . '\\'
+                $moduleName . '\core\Model' => [
+                    $moduleName => $moduleName . '\Model\\' . $moduleName . '\\'
                 ],
                 'ice\core\Action' => [
-                    $moduleName => $lowerModuleName . '\action\\',
+                    $moduleName => $moduleName . '\Action\\',
                 ],
             ],
-            'hosts' => ['/' . $lowerModuleName . '.local$/' => 'development'],
+            'hosts' => ['/' . strtolower($moduleName) . '.local$/' => 'development'],
             'environments' => ['production' => []],
             'viewRenders' => []
         ];

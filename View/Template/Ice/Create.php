@@ -9,6 +9,7 @@ use ice\core\action\<?=$interface?>;
 <?php
 }?>
 use ice\Exception;
+use ice\view\render\Php;
 
 /**
  * Class <?=$actionName?>
@@ -30,6 +31,8 @@ class <?=$actionName?> extends Action<?php if (!empty($interfaces)) {?> implemen
 }?>
 
 {
+    protected $viewRenderClass = Php::VIEW_RENDER_PHP_CLASS;
+
     /**
      * Run action
      *
@@ -40,6 +43,6 @@ class <?=$actionName?> extends Action<?php if (!empty($interfaces)) {?> implemen
      */
     protected function run(array $input, Action_Context &$actionContext)
     {
-        return ['errors' => 'Implement run() method.'];
+        return ['errors' => 'Implement run() method of action class <?=$actionName?>.'];
     }
 }
