@@ -22,7 +22,7 @@ abstract class Action
 
     /** @var array Переопределяемый конфиг */
     protected static $config = [];
-    /** @var array Стек вызовов экшинов */
+    /** @var array Actions' call stack */
     private static $_callStack = [];
     /** @var array предопределенные экшины */
     protected $staticActions = [];
@@ -44,7 +44,7 @@ abstract class Action
     private $_config = null;
 
     /**
-     * Приватный конструктор. Создаем через Action::create()
+     * Privati constructor. Create via Action::create()
      */
     private function __construct()
     {
